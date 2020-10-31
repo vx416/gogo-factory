@@ -63,6 +63,70 @@ func (attr *intAttribute) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
+// SeqInt create int attributer with a slice of int
+func SeqInt(name string, intSet []int, options ...string) Attributer {
+	return &seqIntAttr{
+		intSet:  intSet,
+		index:   0,
+		name:    name,
+		colName: getColName(options),
+	}
+}
+
+type seqIntAttr struct {
+	intSet  []int
+	index   int
+	val     int
+	name    string
+	colName string
+	process Processor
+}
+
+func (attr *seqIntAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr seqIntAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *seqIntAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(int)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not int", val)
+	}
+	attr.val = realVal
+	return nil
+}
+
+func (attr seqIntAttr) ColName() string {
+	return attr.colName
+}
+
+func (attr *seqIntAttr) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.intSet[attr.index]
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+
+	attr.index++
+	if attr.index >= len(attr.intSet) {
+		attr.index = 0
+	}
+	return attr.val, nil
+}
+
+func (seqIntAttr) Kind() Type {
+	return IntAttr
+}
+
+func (attr seqIntAttr) Name() string {
+	return attr.name
+}
+
 // Seq create int attributer with sequential number from start parameter
 func Seq(name string, start int, options ...string) Attributer {
 	colName := ""
