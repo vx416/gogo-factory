@@ -129,14 +129,10 @@ func (attr seqIntAttr) Name() string {
 
 // Seq create int attributer with sequential number from start parameter
 func Seq(name string, start int, options ...string) Attributer {
-	colName := ""
-	if len(options) > 0 {
-		colName = getColName(options)
-	}
 
 	return &seqAttr{
 		name:    name,
-		colName: colName,
+		colName: getColName(options),
 		seq:     start,
 	}
 }

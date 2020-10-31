@@ -22,16 +22,20 @@ type User struct {
 	CreatedAt time.Time
 	UpdatedAt sql.NullTime
 	PtrString *string
+	Home      *Home
+	Rented    []*Home
+}
+
+type Home struct {
+	ID        int64
+	HostID    int64
+	CreatedAt time.Time
 	Location  *Location
 }
 
 type Location struct {
-	ID        int64
-	HostID    int64
-	Loc       string
-	Lat       float32
-	Lon       float32
-	CreatedAt time.Time
+	ID      int64
+	Address string
 }
 
 func readSchema(fileName string) (string, error) {

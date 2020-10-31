@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vicxu416/seed-factory/randutil"
+
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Pallinder/go-randomdata"
@@ -29,6 +31,7 @@ func TestBasicAttributes(t *testing.T) {
 		attr.Float("Height", func() float64 { return randomdata.Decimal(1, 20, 1) }),
 	)
 
+	users := make([]*User, 0, 1)
 	for i := 1; i <= 5; i++ {
 		user := userFactory.MustBuild().(*User)
 		assert.Equal(t, user.ID, int64(i))
@@ -38,6 +41,7 @@ func TestBasicAttributes(t *testing.T) {
 		assert.NotZero(t, user.Age)
 		assert.NotZero(t, user.Weight)
 		assert.NotZero(t, user.Height)
+		users = append(users, user)
 	}
 }
 
@@ -48,14 +52,14 @@ func TestRandAttr(t *testing.T) {
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
 		attr.Seq("ID", 1),
-		attr.RandStr("Username", userNameSet),
-		attr.RandStr("Phone", phoneSet),
-		attr.RandInt("Gender", 1, 2),
-		attr.RandInt("Age", 25, 100),
-		attr.RandFloat("Height", 55.0, 90.0),
-		attr.RandFloat("Weight", 155.0, 190.0),
-		attr.RandBool("Host", 0.5),
-		attr.RandTime("CreatedAt", minTime, maxTime),
+		attr.Str("Username", randutil.StrSetRander(userNameSet...)),
+		attr.Str("Phone", randutil.StrSetRander(phoneSet...)),
+		attr.Int("Gender", randutil.IntRander(1, 2)),
+		attr.Int("Age", randutil.IntRander(25, 100)),
+		attr.Float("Height", randutil.FloatRander(55.0, 99.0)),
+		attr.Float("Weight", randutil.FloatRander(155.0, 190.0)),
+		attr.Bool("Host", randutil.BoolRander(0.5)),
+		attr.Time("CreatedAt", randutil.TimeRander(minTime, maxTime)),
 	)
 
 	user := userFactory.MustBuild().(*User)
@@ -74,8 +78,8 @@ func TestNullableFields(t *testing.T) {
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
 		attr.Seq("ID", 1),
-		attr.RandTime("UpdatedAt", minTime, maxTime),
-		attr.RandStr("PtrString", stringSet),
+		attr.Time("UpdatedAt", randutil.TimeRander(minTime, maxTime)),
+		attr.Str("PtrString", randutil.StrSetRander(stringSet...)),
 	)
 	user := userFactory.MustBuild().(*User)
 	between(t, int(user.UpdatedAt.Time.Unix()), int(maxTime.Unix()), int(minTime.Unix()))
@@ -83,48 +87,67 @@ func TestNullableFields(t *testing.T) {
 	assert.Subset(t, stringSet, []string{*user.PtrString})
 }
 
-func TestFactoryAttr(t *testing.T) {
-	locFactory := factory.New(
-		func() interface{} { return &Location{} },
+func TestFAssociate(t *testing.T) {
+	homeFactory := factory.New(
+		func() interface{} { return &Home{} },
 		attr.Seq("ID", 1),
-		attr.Str("Loc", randomdata.Address),
 	)
 
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
 		attr.Seq("ID", 1),
-		attr.Factory("Location", locFactory, false),
-	)
+	).FAssociate("Home", homeFactory, 1, false, func(data, depend interface{}) error {
+		user := data.(*User)
+		home := depend.(*Home)
+		home.HostID = user.ID
+		return nil
+	}).FAssociate("Rented", homeFactory, 5, false, func(data, depend interface{}) error {
+		user := data.(*User)
+		home := depend.(*Home)
+		home.HostID = user.ID
+		return nil
+	})
+
 	user := userFactory.MustBuild().(*User)
-	assert.NotNil(t, user.Location)
-	assert.NotZero(t, user.Location.ID)
-	assert.NotEmpty(t, user.Location.Loc)
+	assert.NotNil(t, user.Home)
+	assert.NotZero(t, user.Home.ID)
+	assert.Equal(t, user.Home.HostID, user.ID)
+	assert.Len(t, user.Rented, 5)
+	for _, home := range user.Rented {
+		assert.Equal(t, home.HostID, user.ID)
+	}
 }
 
-func TestProcess(t *testing.T) {
-	locFactory := factory.New(
-		func() interface{} { return &Location{} },
+func TestAssociate(t *testing.T) {
+	homeFactory := factory.New(
+		func() interface{} { return &Home{} },
 		attr.Seq("ID", 1),
-		attr.Str("Loc", randomdata.Address),
 	)
 
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
 		attr.Seq("ID", 1),
-		attr.Factory("Location", locFactory, false).Process(
-			func(attrGen attr.Attributer, data interface{}) error {
-				loc := attrGen.GetVal().(*Location)
-				user := data.(*User)
-				loc.HostID = user.ID
-				attrGen.SetVal(loc)
-				return nil
-			},
-		),
 	)
 
-	user := userFactory.MustBuild().(*User)
-	assert.NotNil(t, user.Location)
-	assert.NotZero(t, user.Location.ID)
-	assert.NotEmpty(t, user.Location.Loc)
-	assert.Equal(t, user.Location.HostID, user.ID)
+	user := userFactory.Associate("Home", homeFactory, 1, false, func(data interface{}, depend interface{}) error {
+		user := data.(*User)
+		home := depend.(*Home)
+		home.HostID = user.ID
+		return nil
+	}).MustBuild().(*User)
+	assert.NotNil(t, user.Home)
+	assert.NotZero(t, user.Home.ID)
+	assert.Equal(t, user.Home.HostID, user.ID)
+
+	user2 := userFactory.Associate("Rented", homeFactory, 3, false, func(data interface{}, depend interface{}) error {
+		user := data.(*User)
+		home := depend.(*Home)
+		home.HostID = user.ID
+		return nil
+	}).MustBuild().(*User)
+	assert.Nil(t, user2.Home)
+	assert.Len(t, user2.Rented, 3)
+	for _, home := range user2.Rented {
+		assert.Equal(t, home.HostID, user2.ID)
+	}
 }

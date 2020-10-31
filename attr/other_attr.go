@@ -61,7 +61,7 @@ func (attr *attr) Gen(data interface{}) (interface{}, error) {
 
 func getColName(options []string) string {
 	if len(options) > 0 {
-		return getColName(options)
+		return options[0]
 	}
 	return ""
 }
@@ -124,57 +124,54 @@ func (attr bytesAttr) Name() string {
 	return attr.name
 }
 
-// Factory create factory attributer with givened factory object
-func Factory(name string, factory Factorier, insertFirst bool, options ...string) Attributer {
-	return &factoryAttr{
-		name:        name,
-		colName:     getColName(options),
-		factory:     factory,
-		insertFirst: insertFirst,
+func Time(name string, genFunc func() time.Time, options ...string) Attributer {
+	return &timeAttr{
+		name:    name,
+		colName: getColName(options),
+		genFunc: genFunc,
 	}
 }
 
-type factoryAttr struct {
-	factory     Factorier
-	insertFirst bool
-	val         interface{}
-	name        string
-	colName     string
-	process     Processor
+type timeAttr struct {
+	val     time.Time
+	name    string
+	colName string
+	genFunc func() time.Time
+	process Processor
 }
 
-func (attr *factoryAttr) Process(procFunc Processor) Attributer {
+func (attr *timeAttr) Process(procFunc Processor) Attributer {
 	attr.process = procFunc
 	return attr
 }
 
-func (attr factoryAttr) GetVal() interface{} {
+func (attr timeAttr) GetVal() interface{} {
 	return attr.val
 }
 
-func (attr *factoryAttr) SetVal(val interface{}) error {
-	attr.val = val
+func (attr *timeAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(time.Time)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not time.Time", val)
+	}
+	attr.val = realVal
 	return nil
 }
 
-func (attr factoryAttr) ColName() string {
+func (attr timeAttr) ColName() string {
 	return attr.colName
 }
 
-func (attr factoryAttr) Name() string {
+func (attr timeAttr) Name() string {
 	return attr.name
 }
 
-func (factoryAttr) Kind() Type {
-	return FactoryAttr
+func (timeAttr) Kind() Type {
+	return TimeAttr
 }
 
-func (attr *factoryAttr) Gen(data interface{}) (interface{}, error) {
-	factoryData, err := attr.factory.Build()
-	if err != nil {
-		return nil, err
-	}
-	attr.val = factoryData
+func (attr *timeAttr) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.genFunc()
 	if attr.process != nil {
 		if err := attr.process(attr, data); err != nil {
 			return nil, err
@@ -183,13 +180,58 @@ func (attr *factoryAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (attr factoryAttr) Insert(data interface{}) error {
-	return attr.factory.Insert(data)
+func Bool(name string, genFunc func() bool, options ...string) Attributer {
+	return &boolAttr{
+		name:    name,
+		colName: getColName(options),
+		genFunc: genFunc,
+	}
 }
 
-type timeAttr struct {
-	begin   time.Time
-	end     time.Time
+type boolAttr struct {
+	val     bool
 	name    string
 	colName string
+	genFunc func() bool
+	process Processor
+}
+
+func (attr *boolAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr boolAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *boolAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(bool)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not bool", val)
+	}
+	attr.val = realVal
+	return nil
+}
+
+func (attr boolAttr) ColName() string {
+	return attr.colName
+}
+
+func (attr boolAttr) Name() string {
+	return attr.name
+}
+
+func (boolAttr) Kind() Type {
+	return BoolAttr
+}
+
+func (attr *boolAttr) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.genFunc()
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+	return attr.val, nil
 }
