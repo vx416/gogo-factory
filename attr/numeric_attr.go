@@ -1,23 +1,13 @@
 package attr
 
 import (
-	"reflect"
+	"fmt"
 )
 
 func Int(name string, genFunc func() int, options ...string) Attributer {
 	return &intAttribute{
 		name:    name,
-		colName: options[0],
-		genFunc: func(data interface{}) (int, error) {
-			return genFunc(), nil
-		},
-	}
-}
-
-func IntWith(name string, genFunc func(data interface{}) (int, error), options ...string) Attributer {
-	return &intAttribute{
-		name:    name,
-		colName: options[0],
+		colName: getColName(options),
 		genFunc: genFunc,
 	}
 }
@@ -25,7 +15,28 @@ func IntWith(name string, genFunc func(data interface{}) (int, error), options .
 type intAttribute struct {
 	name    string
 	colName string
-	genFunc func(data interface{}) (int, error)
+	val     int
+	genFunc func() int
+	process Processor
+}
+
+func (attr *intAttribute) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr intAttribute) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *intAttribute) SetVal(val interface{}) error {
+	realVal, ok := val.(int)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not int", val)
+	}
+
+	attr.val = realVal
+	return nil
 }
 
 func (attr intAttribute) ColName() string {
@@ -36,38 +47,58 @@ func (attr intAttribute) Name() string {
 	return attr.name
 }
 
-func (intAttribute) Kind() reflect.Kind {
-	return reflect.Int64
+func (intAttribute) Kind() AttrType {
+	return IntAttr
 }
 
-func (attr intAttribute) Gen(data interface{}) (interface{}, error) {
-	return attr.genFunc(data)
+func (attr *intAttribute) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.genFunc()
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+
+	return attr.val, nil
 }
 
 func Seq(name string, start int, options ...string) Attributer {
-	return &seqAttr{
-		name:    name,
-		colName: options[0],
-		seq:     start,
-		genFunc: func(data interface{}, seq int) (int, error) {
-			return seq, nil
-		},
+	colName := ""
+	if len(options) > 0 {
+		colName = getColName(options)
 	}
-}
 
-func SeqWith(name string, genFunc func(data interface{}, seq int) (int, error), options ...string) Attributer {
 	return &seqAttr{
 		name:    name,
-		colName: options[0],
-		genFunc: genFunc,
-		seq:     1}
+		colName: colName,
+		seq:     start,
+	}
 }
 
 type seqAttr struct {
 	seq     int
+	val     int
 	name    string
 	colName string
-	genFunc func(data interface{}, seq int) (int, error)
+	process Processor
+}
+
+func (attr *seqAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr seqAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *seqAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(int)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not int", val)
+	}
+	attr.val = realVal
+	return nil
 }
 
 func (attr seqAttr) ColName() string {
@@ -75,16 +106,19 @@ func (attr seqAttr) ColName() string {
 }
 
 func (attr *seqAttr) Gen(data interface{}) (interface{}, error) {
-	val, err := attr.genFunc(data, attr.seq)
-	if err != nil {
-		return nil, err
+	attr.val = attr.seq
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
 	}
 	attr.seq++
-	return val, nil
+
+	return attr.val, nil
 }
 
-func (seqAttr) Kind() reflect.Kind {
-	return reflect.Int64
+func (seqAttr) Kind() AttrType {
+	return IntAttr
 }
 
 func (attr seqAttr) Name() string {
@@ -94,17 +128,7 @@ func (attr seqAttr) Name() string {
 func Float(name string, genFunc func() float64, options ...string) Attributer {
 	return &floatAttr{
 		name:    name,
-		colName: options[0],
-		genFunc: func(data interface{}) (float64, error) {
-			return genFunc(), nil
-		},
-	}
-}
-
-func FloatWith(name string, genFunc func(data interface{}) (float64, error), options ...string) Attributer {
-	return &floatAttr{
-		name:    name,
-		colName: options[0],
+		colName: getColName(options),
 		genFunc: genFunc,
 	}
 }
@@ -112,19 +136,47 @@ func FloatWith(name string, genFunc func(data interface{}) (float64, error), opt
 type floatAttr struct {
 	name    string
 	colName string
-	genFunc func(data interface{}) (float64, error)
+	val     float64
+	genFunc func() float64
+	process Processor
+}
+
+func (attr *floatAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr floatAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *floatAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(float64)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not float64", val)
+	}
+
+	attr.val = realVal
+	return nil
 }
 
 func (attr floatAttr) ColName() string {
 	return attr.colName
 }
 
-func (attr floatAttr) Gen(data interface{}) (interface{}, error) {
-	return attr.genFunc(data)
+func (attr *floatAttr) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.genFunc()
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+
+	return attr.val, nil
 }
 
-func (floatAttr) Kind() reflect.Kind {
-	return reflect.Float64
+func (floatAttr) Kind() AttrType {
+	return FloatAttr
 }
 
 func (attr floatAttr) Name() string {
@@ -134,17 +186,7 @@ func (attr floatAttr) Name() string {
 func Uint(name string, genFunc func() uint, options ...string) Attributer {
 	return &uintAttr{
 		name:    name,
-		colName: options[0],
-		genFunc: func(data interface{}) (uint, error) {
-			return genFunc(), nil
-		},
-	}
-}
-
-func UintWith(name string, genFunc func(data interface{}) (uint, error), options ...string) Attributer {
-	return &uintAttr{
-		name:    name,
-		colName: options[0],
+		colName: getColName(options),
 		genFunc: genFunc,
 	}
 }
@@ -152,19 +194,46 @@ func UintWith(name string, genFunc func(data interface{}) (uint, error), options
 type uintAttr struct {
 	name    string
 	colName string
-	genFunc func(data interface{}) (uint, error)
+	val     uint
+	genFunc func() uint
+	process Processor
+}
+
+func (attr *uintAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr uintAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *uintAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(uint)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not uint", val)
+	}
+
+	attr.val = realVal
+	return nil
 }
 
 func (attr uintAttr) ColName() string {
 	return attr.colName
 }
 
-func (attr uintAttr) Gen(data interface{}) (interface{}, error) {
-	return attr.genFunc(data)
+func (attr *uintAttr) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.genFunc()
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+	return attr.val, nil
 }
 
-func (uintAttr) Kind() reflect.Kind {
-	return reflect.Uint
+func (uintAttr) Kind() AttrType {
+	return UintAttr
 }
 
 func (attr uintAttr) Name() string {

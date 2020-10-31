@@ -1,43 +1,60 @@
 package attr
 
 import (
-	"reflect"
+	"fmt"
 )
 
 func Str(name string, genFunc func() string, options ...string) Attributer {
 	return &strAttr{
 		name:    name,
-		colName: options[0],
-		genFunc: func(data interface{}) (string, error) {
-			return genFunc(), nil
-		},
-	}
-}
-
-func StrWith(name string, genFunc func(data interface{}) (string, error), options ...string) Attributer {
-	return &strAttr{
-		name:    name,
-		colName: options[0],
+		colName: getColName(options),
 		genFunc: genFunc,
 	}
 }
 
 type strAttr struct {
+	val     string
 	name    string
 	colName string
-	genFunc func(data interface{}) (string, error)
+	genFunc func() string
+	process Processor
+}
+
+func (attr *strAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr strAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *strAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not string", val)
+	}
+
+	attr.val = realVal
+	return nil
 }
 
 func (attr strAttr) ColName() string {
 	return attr.colName
 }
 
-func (strAttr) Kind() reflect.Kind {
-	return reflect.String
+func (strAttr) Kind() AttrType {
+	return StringAttr
 }
 
-func (attr strAttr) Gen(data interface{}) (interface{}, error) {
-	return attr.genFunc(data)
+func (attr *strAttr) Gen(data interface{}) (interface{}, error) {
+	attr.val = attr.genFunc()
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+	return attr.val, nil
 }
 
 func (attr strAttr) Name() string {
@@ -47,22 +64,9 @@ func (attr strAttr) Name() string {
 func StrSeq(name string, strSeq []string, options ...string) Attributer {
 	return &strSeqAttr{
 		name:    name,
-		colName: options[0],
+		colName: getColName(options),
 		strSeq:  strSeq,
 		index:   0,
-		genFunc: func(data interface{}, str string) (string, error) {
-			return str, nil
-		},
-	}
-}
-
-func StrSeqWith(name string, strSeq []string, genFunc func(data interface{}, str string) (string, error), options ...string) Attributer {
-	return &strSeqAttr{
-		name:    name,
-		colName: options[0],
-		strSeq:  strSeq,
-		index:   0,
-		genFunc: genFunc,
 	}
 }
 
@@ -71,28 +75,50 @@ type strSeqAttr struct {
 	colName string
 	strSeq  []string
 	index   int
-	genFunc func(data interface{}, str string) (string, error)
+	val     string
+	process Processor
+}
+
+func (attr *strSeqAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr strSeqAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *strSeqAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(string)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not string", val)
+	}
+
+	attr.val = realVal
+	return nil
 }
 
 func (attr strSeqAttr) ColName() string {
 	return attr.colName
 }
 
-func (strSeqAttr) Kind() reflect.Kind {
-	return reflect.String
+func (strSeqAttr) Kind() AttrType {
+	return StringAttr
 }
 
 func (attr *strSeqAttr) Gen(data interface{}) (interface{}, error) {
-	str, err := attr.genFunc(data, attr.strSeq[attr.index])
-	if err != nil {
-		return nil, err
+	attr.val = attr.strSeq[attr.index]
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
 	}
 
 	attr.index++
 	if attr.index >= len(attr.strSeq) {
 		attr.index = 0
 	}
-	return str, nil
+	return attr.val, nil
 }
 
 func (attr strSeqAttr) Name() string {
