@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// Str create string attributer with generated function
 func Str(name string, genFunc func() string, options ...string) Attributer {
 	return &strAttr{
 		name:    name,
@@ -43,7 +44,7 @@ func (attr strAttr) ColName() string {
 	return attr.colName
 }
 
-func (strAttr) Kind() AttrType {
+func (strAttr) Kind() Type {
 	return StringAttr
 }
 
@@ -61,6 +62,7 @@ func (attr strAttr) Name() string {
 	return attr.name
 }
 
+// StrSeq create string attributer with a slice of string and generate string in this slice sequentially
 func StrSeq(name string, strSeq []string, options ...string) Attributer {
 	return &strSeqAttr{
 		name:    name,
@@ -102,7 +104,7 @@ func (attr strSeqAttr) ColName() string {
 	return attr.colName
 }
 
-func (strSeqAttr) Kind() AttrType {
+func (strSeqAttr) Kind() Type {
 	return StringAttr
 }
 

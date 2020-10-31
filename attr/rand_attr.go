@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// RandInt create int attributer with rand number in range of min and max
 func RandInt(name string, min, max int, options ...string) Attributer {
 	return &randIntAttr{
 		name:    name,
@@ -58,7 +59,7 @@ func (attr *randIntAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (randIntAttr) Kind() AttrType {
+func (randIntAttr) Kind() Type {
 	return IntAttr
 }
 
@@ -66,6 +67,7 @@ func (attr randIntAttr) Name() string {
 	return attr.name
 }
 
+// RandUint create uint attributer with rand number in range of min and max
 func RandUint(name string, min, max uint, options ...string) Attributer {
 	return &randUintAttr{
 		name:    name,
@@ -118,7 +120,7 @@ func (attr *randUintAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (randUintAttr) Kind() AttrType {
+func (randUintAttr) Kind() Type {
 	return UintAttr
 }
 
@@ -136,6 +138,7 @@ func randUintIn(min, max uint) uint {
 	return uint(rand.Intn(int(max)-int(min)) + int(min))
 }
 
+// RandFloat create float attributer with rand number in range of min and max
 func RandFloat(name string, min, max float64, options ...string) Attributer {
 	return &randFloatAttr{
 		name:    name,
@@ -187,7 +190,7 @@ func (attr *randFloatAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (randFloatAttr) Kind() AttrType {
+func (randFloatAttr) Kind() Type {
 	return FloatAttr
 }
 
@@ -202,6 +205,7 @@ func randFloat64(min, max float64) float64 {
 	return float64(randInt) + rand.Float64()
 }
 
+// RandStr create string attributer with rand string within string slice
 func RandStr(name string, randSet []string, options ...string) Attributer {
 	return &randStrAttr{
 		name:     name,
@@ -254,7 +258,7 @@ func (attr *randStrAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (randStrAttr) Kind() AttrType {
+func (randStrAttr) Kind() Type {
 	return StringAttr
 }
 
@@ -262,7 +266,8 @@ func (attr randStrAttr) Name() string {
 	return attr.name
 }
 
-func RandTime(name string, max, min time.Time, options ...string) Attributer {
+// RandTime create time attributer with rand time in range of min and max
+func RandTime(name string, min, max time.Time, options ...string) Attributer {
 	return &randTimeAttr{
 		name:    name,
 		colName: getColName(options),
@@ -314,10 +319,75 @@ func (attr *randTimeAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (randTimeAttr) Kind() AttrType {
+func (randTimeAttr) Kind() Type {
 	return TimeAttr
 }
 
 func (attr randTimeAttr) Name() string {
+	return attr.name
+}
+
+// RandBool create boolean attributer with random true/false value
+//   the ratio parameter define the percentage of occurrence of true value
+func RandBool(name string, ratio float64, options ...string) Attributer {
+	return &randBoolAttr{
+		name:    name,
+		ratio:   ratio,
+		colName: getColName(options),
+	}
+}
+
+type randBoolAttr struct {
+	val     bool
+	ratio   float64
+	name    string
+	colName string
+	process Processor
+}
+
+func (attr *randBoolAttr) Process(procFunc Processor) Attributer {
+	attr.process = procFunc
+	return attr
+}
+
+func (attr randBoolAttr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr *randBoolAttr) SetVal(val interface{}) error {
+	realVal, ok := val.(bool)
+	if !ok {
+		return fmt.Errorf("set attribute val: val %+v is not bool", val)
+	}
+
+	attr.val = realVal
+	return nil
+}
+
+func (attr randBoolAttr) ColName() string {
+	return attr.colName
+}
+
+func (randBoolAttr) Kind() Type {
+	return BoolAttr
+}
+
+func (attr *randBoolAttr) Gen(data interface{}) (interface{}, error) {
+	rand.Seed(time.Now().UnixNano())
+	if rand.Float64() > attr.ratio {
+		attr.val = false
+	} else {
+		attr.val = true
+	}
+
+	if attr.process != nil {
+		if err := attr.process(attr, data); err != nil {
+			return nil, err
+		}
+	}
+	return attr.val, nil
+}
+
+func (attr randBoolAttr) Name() string {
 	return attr.name
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// Int create int attributer with generated function
 func Int(name string, genFunc func() int, options ...string) Attributer {
 	return &intAttribute{
 		name:    name,
@@ -47,7 +48,7 @@ func (attr intAttribute) Name() string {
 	return attr.name
 }
 
-func (intAttribute) Kind() AttrType {
+func (intAttribute) Kind() Type {
 	return IntAttr
 }
 
@@ -62,6 +63,7 @@ func (attr *intAttribute) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
+// Seq create int attributer with sequential number from start parameter
 func Seq(name string, start int, options ...string) Attributer {
 	colName := ""
 	if len(options) > 0 {
@@ -117,7 +119,7 @@ func (attr *seqAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (seqAttr) Kind() AttrType {
+func (seqAttr) Kind() Type {
 	return IntAttr
 }
 
@@ -125,6 +127,7 @@ func (attr seqAttr) Name() string {
 	return attr.name
 }
 
+// Float create float attributer with generated function
 func Float(name string, genFunc func() float64, options ...string) Attributer {
 	return &floatAttr{
 		name:    name,
@@ -175,7 +178,7 @@ func (attr *floatAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (floatAttr) Kind() AttrType {
+func (floatAttr) Kind() Type {
 	return FloatAttr
 }
 
@@ -183,6 +186,7 @@ func (attr floatAttr) Name() string {
 	return attr.name
 }
 
+// Uint create uint attributer with generated function
 func Uint(name string, genFunc func() uint, options ...string) Attributer {
 	return &uintAttr{
 		name:    name,
@@ -232,7 +236,7 @@ func (attr *uintAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (uintAttr) Kind() AttrType {
+func (uintAttr) Kind() Type {
 	return UintAttr
 }
 

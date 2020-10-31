@@ -5,50 +5,51 @@ import (
 	"time"
 )
 
-func Bool(name string, genFunc func() bool, options ...string) Attributer {
-	return &boolAttr{
+// Attr create interface{} attributer with generated function
+//  the return value of generated function must has the specific type
+func Attr(name string, genFunc func() interface{}, options ...string) Attributer {
+	return &attr{
 		name:    name,
 		colName: getColName(options),
 		genFunc: genFunc,
 	}
 }
 
-type boolAttr struct {
-	val     bool
+type attr struct {
 	name    string
 	colName string
+	genFunc func() interface{}
 	process Processor
-	genFunc func() bool
+	val     interface{}
 }
 
-func (attr *boolAttr) Process(procFunc Processor) Attributer {
+func (attr attr) ColName() string {
+	return attr.colName
+}
+
+func (attr attr) GetVal() interface{} {
+	return attr.val
+}
+
+func (attr attr) SetVal(val interface{}) error {
+	attr.val = val
+	return nil
+}
+
+func (attr attr) Name() string {
+	return attr.name
+}
+
+func (attr) Kind() Type {
+	return UnknownAttr
+}
+
+func (attr *attr) Process(procFunc Processor) Attributer {
 	attr.process = procFunc
 	return attr
 }
 
-func (attr boolAttr) GetVal() interface{} {
-	return attr.val
-}
-
-func (attr *boolAttr) SetVal(val interface{}) error {
-	realVal, ok := val.(bool)
-	if !ok {
-		return fmt.Errorf("set attribute val: val %+v is not bool", val)
-	}
-
-	attr.val = realVal
-	return nil
-}
-
-func (attr boolAttr) ColName() string {
-	return attr.colName
-}
-
-func (boolAttr) Kind() AttrType {
-	return BoolAttr
-}
-
-func (attr *boolAttr) Gen(data interface{}) (interface{}, error) {
+func (attr *attr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
 	if attr.process != nil {
 		if err := attr.process(attr, data); err != nil {
@@ -58,10 +59,14 @@ func (attr *boolAttr) Gen(data interface{}) (interface{}, error) {
 	return attr.val, nil
 }
 
-func (attr boolAttr) Name() string {
-	return attr.name
+func getColName(options []string) string {
+	if len(options) > 0 {
+		return getColName(options)
+	}
+	return ""
 }
 
+// Bytes create []byte attributer with generated function
 func Bytes(name string, genFunc func() []byte, options ...string) Attributer {
 	return &bytesAttr{
 		name:    name,
@@ -101,7 +106,7 @@ func (attr bytesAttr) ColName() string {
 	return attr.colName
 }
 
-func (bytesAttr) Kind() AttrType {
+func (bytesAttr) Kind() Type {
 	return BytesAttr
 }
 
@@ -119,6 +124,7 @@ func (attr bytesAttr) Name() string {
 	return attr.name
 }
 
+// Factory create factory attributer with givened factory object
 func Factory(name string, factory Factorier, insertFirst bool, options ...string) Attributer {
 	return &factoryAttr{
 		name:        name,
@@ -159,7 +165,7 @@ func (attr factoryAttr) Name() string {
 	return attr.name
 }
 
-func (factoryAttr) Kind() AttrType {
+func (factoryAttr) Kind() Type {
 	return FactoryAttr
 }
 
