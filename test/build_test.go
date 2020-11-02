@@ -4,13 +4,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vicxu416/seed-factory/randutil"
+	"github.com/vicxu416/gogo-factory/randutil"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/Pallinder/go-randomdata"
-	factory "github.com/vicxu416/seed-factory"
-	"github.com/vicxu416/seed-factory/attr"
+	factory "github.com/vicxu416/gogo-factory"
+	"github.com/vicxu416/gogo-factory/attr"
 )
 
 func between(t *testing.T, target, max, min int) {

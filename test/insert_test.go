@@ -7,9 +7,9 @@ import (
 
 	"github.com/Pallinder/go-randomdata"
 
-	factory "github.com/vicxu416/seed-factory"
-	"github.com/vicxu416/seed-factory/attr"
-	"github.com/vicxu416/seed-factory/randutil"
+	factory "github.com/vicxu416/gogo-factory"
+	"github.com/vicxu416/gogo-factory/attr"
+	"github.com/vicxu416/gogo-factory/randutil"
 
 	"github.com/stretchr/testify/suite"
 )
@@ -30,67 +30,67 @@ func (suite *sqliteSuite) SetupSuite() {
 	factory.DB(db, "sqlite3")
 }
 
-func (suite *sqliteSuite) TestBuildSeed() {
-	userFactory := factory.New(
-		func() interface{} { return &User{CreatedAt: time.Now()} },
-		attr.Seq("ID", 1, "id"),
-		attr.Str("Username", randutil.NameRander(3), "username"),
-		attr.Int("Age", randutil.IntRander(25, 50), "age"),
-	).Fix("CreatedAt", "created_at").Table("users")
+// func (suite *sqliteSuite) TestInsert() {
+// 	userFactory := factory.New(
+// 		func() interface{} { return &User{CreatedAt: time.Now()} },
+// 		attr.Seq("ID", 1, "id"),
+// 		attr.Str("Username", randutil.NameRander(3), "username"),
+// 		attr.Int("Age", randutil.IntRander(25, 50), "age"),
+// 	).Fix("CreatedAt", "created_at").Table("users")
 
-	_, err := userFactory.BuildSeed()
-	suite.Require().NoError(err)
+// 	_, err := userFactory.Insert()
+// 	suite.Require().NoError(err)
 
-	for i := 1; i <= 10; i++ {
-		_, err := userFactory.BuildSeed()
-		suite.Require().NoError(err)
-	}
-}
+// 	for i := 1; i <= 10; i++ {
+// 		_, err := userFactory.Insert()
+// 		suite.Require().NoError(err)
+// 	}
+// }
 
-func (suite *sqliteSuite) TestBuildSeedWithAfterAssociation() {
-	homeFactory := factory.New(
-		func() interface{} { return &Home{} },
-		attr.Seq("ID", 1, "id"),
-	).Fix("HostID", "host_id").Table("homes")
+// func (suite *sqliteSuite) TestInsertWithAfterAssociation() {
+// 	homeFactory := factory.New(
+// 		func() interface{} { return &Home{} },
+// 		attr.Seq("ID", 1, "id"),
+// 	).Fix("HostID", "host_id").Table("homes")
 
-	userFactory := factory.New(
-		func() interface{} { return &User{CreatedAt: time.Now()} },
-		attr.Seq("ID", 50, "id"),
-		attr.Str("Username", randutil.NameRander(3), "username"),
-		attr.Int("Age", randutil.IntRander(25, 50), "age"),
-	).FAssociate("Home", homeFactory, 1, false, func(data, depend interface{}) error {
-		user := data.(*User)
-		home := depend.(*Home)
-		home.HostID = user.ID
-		return nil
-	}).Table("users")
+// 	userFactory := factory.New(
+// 		func() interface{} { return &User{CreatedAt: time.Now()} },
+// 		attr.Seq("ID", 50, "id"),
+// 		attr.Str("Username", randutil.NameRander(3), "username"),
+// 		attr.Int("Age", randutil.IntRander(25, 50), "age"),
+// 	).FAssociate("Home", homeFactory, 1, false, func(data, depend interface{}) error {
+// 		user := data.(*User)
+// 		home := depend.(*Home)
+// 		home.HostID = user.ID
+// 		return nil
+// 	}).Table("users")
 
-	_, err := userFactory.BuildSeed()
-	suite.Require().NoError(err)
-	_, err = homeFactory.BuildSeed()
-	suite.Require().NoError(err)
-}
+// 	_, err := userFactory.Insert()
+// 	suite.Require().NoError(err)
+// 	_, err = homeFactory.Insert()
+// 	suite.Require().NoError(err)
+// }
 
-func (suite *sqliteSuite) TestBuildSeedWithBeforeAssociation() {
-	locationFactory := factory.New(
-		func() interface{} { return &Location{} },
-		attr.Seq("ID", 1, "id"),
-		attr.Str("Address", randomdata.Address, "address"),
-	).Table("locations")
+// func (suite *sqliteSuite) TestInsertWithBeforeAssociation() {
+// 	locationFactory := factory.New(
+// 		func() interface{} { return &Location{} },
+// 		attr.Seq("ID", 1, "id"),
+// 		attr.Str("Address", randomdata.Address, "address"),
+// 	).Table("locations")
 
-	homeFactory := factory.New(
-		func() interface{} { return &Home{} },
-		attr.Seq("ID", 1, "id"),
-	).FAssociate("Location", locationFactory, 1, true, nil, "location_id").Table("homes")
+// 	homeFactory := factory.New(
+// 		func() interface{} { return &Home{} },
+// 		attr.Seq("ID", 1, "id"),
+// 	).FAssociate("Location", locationFactory, 1, true, nil, "location_id").Table("homes")
 
-	homeData, err := homeFactory.BuildSeed()
-	suite.Require().NoError(err)
-	home := homeData.(*Home)
-	suite.Assert().NotNil(home)
-	suite.Assert().NotNil(home.Location)
-}
+// 	homeData, err := homeFactory.Insert()
+// 	suite.Require().NoError(err)
+// 	home := homeData.(*Home)
+// 	suite.Assert().NotNil(home)
+// 	suite.Assert().NotNil(home.Location)
+// }
 
-func (suite *sqliteSuite) TestBuildSeedWithFullAssociation() {
+func (suite *sqliteSuite) TestInsertWithFullAssociation() {
 	locationFactory := factory.New(
 		func() interface{} { return &Location{} },
 		attr.Seq("ID", 1, "id"),
@@ -114,6 +114,6 @@ func (suite *sqliteSuite) TestBuildSeedWithFullAssociation() {
 		return nil
 	}).Table("users")
 
-	_, err := userFactory.BuildSeed()
+	_, err := userFactory.Insert()
 	suite.Require().NoError(err)
 }

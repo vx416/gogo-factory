@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/Pallinder/go-randomdata"
-	factory "github.com/vicxu416/seed-factory"
-	"github.com/vicxu416/seed-factory/attr"
-	"github.com/vicxu416/seed-factory/randutil"
+	factory "github.com/vicxu416/gogo-factory"
+	"github.com/vicxu416/gogo-factory/attr"
+	"github.com/vicxu416/gogo-factory/randutil"
 )
 
 func BenchmarkCreate(b *testing.B) {
@@ -40,7 +40,7 @@ func BenchmarkCreate(b *testing.B) {
 	}).Table("users")
 
 	for i := 0; i < b.N; i++ {
-		_, err := userFactory.BuildSeed()
+		_, err := userFactory.Insert()
 		if err != nil {
 			b.Fatalf("err:%+v", err)
 		}

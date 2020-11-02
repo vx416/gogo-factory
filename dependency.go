@@ -31,7 +31,7 @@ func (dep *dependency) build(data interface{}, insert bool, queue *ObjectsQueue)
 			}
 		}
 		dep.factory.setFixFields(object.data, object.colVals)
-		queue.Enqueue(dep.factory.insertQueue.head)
+		queue.Enqueue(dep.factory.insertQueue.Head())
 		dep.factory.clear()
 	}
 
@@ -101,33 +101,29 @@ func (dep *dependency) setField(data interface{}, dependData interface{}) error 
 
 func NewDepMan() *DependencyManager {
 	return &DependencyManager{
-		before: make([]*dependency, 0, 1),
-		after:  make([]*dependency, 0, 1),
+		before: &dependQueue{q: &Queue{}},
+		after:  &dependQueue{q: &Queue{}},
 	}
 }
 
 type DependencyManager struct {
-	before []*dependency
-	after  []*dependency
+	before *dependQueue
+	after  *dependQueue
 }
 
 func (dm *DependencyManager) addBefore(depend *dependency) {
-	if cap(dm.before) == 0 {
-		dm.before = make([]*dependency, 0, 1)
-	}
-	dm.before = append(dm.before, depend)
+	dm.before.Enqueue(depend)
 }
 
 func (dm *DependencyManager) addAfter(depend *dependency) {
-	if cap(dm.after) == 0 {
-		dm.after = make([]*dependency, 0, 1)
-	}
-	dm.after = append(dm.after, depend)
+
+	dm.after.Enqueue(depend)
 }
 
 func (dm *DependencyManager) buildBefore(data interface{}, queue *ObjectsQueue, insert bool, colVals map[string]interface{}) error {
-	for i := range dm.before {
-		depend := dm.before[i]
+	scanner := dm.before.Scan()
+
+	for depend := scanner(); depend != nil; depend = scanner() {
 		objects, err := depend.build(data, insert, queue)
 		if err != nil {
 			return err
@@ -144,8 +140,9 @@ func (dm *DependencyManager) buildBefore(data interface{}, queue *ObjectsQueue, 
 }
 
 func (dm *DependencyManager) buildAfter(data interface{}, queue *ObjectsQueue, insert bool) error {
-	for i := range dm.after {
-		depend := dm.after[i]
+	scanner := dm.after.Scan()
+
+	for depend := scanner(); depend != nil; depend = scanner() {
 		objects, err := depend.build(data, insert, queue)
 		if err != nil {
 			return err
@@ -158,19 +155,78 @@ func (dm *DependencyManager) buildAfter(data interface{}, queue *ObjectsQueue, i
 }
 
 func (dm *DependencyManager) clear() {
-	newBefore := make([]*dependency, 0, len(dm.before))
-	newAfter := make([]*dependency, 0, len(dm.after))
-	for i := range dm.before {
-		if dm.before[i].fix {
-			newBefore = append(newBefore, dm.before[i])
+	dm.after.clear()
+	dm.before.clear()
+}
+
+type dependQueue struct {
+	q *Queue
+}
+
+func (queue *dependQueue) Scan() func() *dependency {
+	scan := queue.q.Scan()
+
+	return func() *dependency {
+		node := scan()
+		if node == nil {
+			return nil
 		}
+
+		return node.data.(*dependency)
 	}
 
-	for i := range dm.after {
-		if dm.after[i].fix {
-			newAfter = append(newAfter, dm.after[i])
+}
+
+func (queue *dependQueue) clear() {
+	curr := queue.q.head
+	for curr != nil {
+		next := curr.next
+		depend := curr.data.(*dependency)
+		if !depend.fix {
+			if curr.prev == nil {
+				queue.q.head = curr.next
+			}
+			if curr.next == nil {
+				queue.q.tail = curr.prev
+			}
+			if curr.prev != nil {
+				curr.prev.next = curr.next
+			}
+			if curr.next != nil {
+				curr.next.prev = curr.prev
+			}
+			queue.q.len--
+			curr.clear()
 		}
+		curr = next
 	}
-	dm.before = newBefore
-	dm.after = newAfter
+}
+
+func (queue *dependQueue) Head() *dependency {
+	if queue.q.Head() == nil {
+		return nil
+	}
+	return queue.q.Head().data.(*dependency)
+}
+
+func (queue *dependQueue) Tail() *dependency {
+	if queue.q.Tail() == nil {
+		return nil
+	}
+	return queue.q.Tail().data.(*dependency)
+}
+
+func (queue *dependQueue) Enqueue(depend *dependency) {
+	node := &Node{
+		data: depend,
+	}
+	queue.q.Enqueue(node)
+}
+
+func (queue *dependQueue) Dequeue() *dependency {
+	node := queue.q.Dequeue()
+	if node == nil {
+		return nil
+	}
+	return node.data.(*dependency)
 }

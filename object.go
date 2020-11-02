@@ -29,69 +29,38 @@ func (obj *Object) Insert() error {
 }
 
 type ObjectsQueue struct {
-	head *Object
-	tail *Object
-	len  int
+	q *Queue
 }
 
 func (queue *ObjectsQueue) clear() {
-	queue.head = nil
-	queue.tail = nil
-	queue.len = 0
+	queue.q.clear()
+}
+
+func (queue *ObjectsQueue) Head() *Object {
+	if queue.q.Head() == nil {
+		return nil
+	}
+	return queue.q.Head().data.(*Object)
+}
+
+func (queue *ObjectsQueue) Tail() *Object {
+	if queue.q.Tail() == nil {
+		return nil
+	}
+	return queue.q.Tail().data.(*Object)
 }
 
 func (queue *ObjectsQueue) Enqueue(object *Object) {
-	queue.RPUSH(object)
+	node := &Node{
+		data: object,
+	}
+	queue.q.Enqueue(node)
 }
 
 func (queue *ObjectsQueue) Dequeue() *Object {
-	return queue.LPOP()
-}
-
-func (queue *ObjectsQueue) LPUSH(object *Object) {
-	if queue.head == nil {
-		queue.head = object
-		queue.tail = object
-		queue.len++
-		return
-	}
-
-	object.next = queue.head
-	queue.head.prev = object
-	queue.head = object
-	queue.len++
-}
-
-func (queue *ObjectsQueue) RPUSH(object *Object) {
-	if queue.head == nil {
-		queue.head = object
-		queue.tail = object
-		queue.len++
-		return
-	}
-
-	queue.tail.next = object
-	object.prev = queue.tail
-	queue.tail = object
-	queue.len++
-}
-
-func (queue *ObjectsQueue) LPOP() *Object {
-	if queue.head == nil {
+	node := queue.q.Dequeue()
+	if node == nil {
 		return nil
 	}
-	object := queue.head
-	queue.head = object.next
-	queue.len--
-	return object
-}
-
-func (queue *ObjectsQueue) RPOP() *Object {
-	if queue.tail == nil {
-		return nil
-	}
-	object := queue.tail
-	queue.tail = object.prev
-	queue.len--
-	return object
+	return node.data.(*Object)
 }

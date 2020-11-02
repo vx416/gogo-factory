@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/vicxu416/seed-factory/attr"
+	"github.com/vicxu416/gogo-factory/attr"
 )
 
 type Template func() interface{}
@@ -17,7 +17,7 @@ func New(src Template, attrs ...attr.Attributer) *Factory {
 		src:          src,
 		attrs:        attrs,
 		omits:        make(map[string]bool),
-		insertQueue:  &ObjectsQueue{},
+		insertQueue:  &ObjectsQueue{q: &Queue{}},
 		dependManger: NewDepMan(),
 		tempFields:   make([]*tmepField, 0, 1),
 		fixFields:    make(map[string]string),
@@ -72,7 +72,7 @@ func (f *Factory) Build() (interface{}, error) {
 	return obj.data, nil
 }
 
-func (f *Factory) MustBuildSeed() interface{} {
+func (f *Factory) MustInsert() interface{} {
 	obj, err := f.build(true)
 	if err != nil {
 		f.clear()
@@ -86,7 +86,7 @@ func (f *Factory) MustBuildSeed() interface{} {
 	return obj.data
 }
 
-func (f *Factory) BuildSeed() (interface{}, error) {
+func (f *Factory) Insert() (interface{}, error) {
 	obj, err := f.build(true)
 	if err != nil {
 		f.clear()
