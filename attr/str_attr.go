@@ -19,6 +19,11 @@ type strAttr struct {
 	colName string
 	genFunc func() string
 	process Processor
+	object  interface{}
+}
+
+func (attr *strAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr *strAttr) Process(procFunc Processor) Attributer {
@@ -50,8 +55,9 @@ func (strAttr) Kind() Type {
 
 func (attr *strAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -79,6 +85,11 @@ type strSeqAttr struct {
 	index   int
 	val     string
 	process Processor
+	object  interface{}
+}
+
+func (attr *strSeqAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr *strSeqAttr) Process(procFunc Processor) Attributer {
@@ -110,8 +121,9 @@ func (strSeqAttr) Kind() Type {
 
 func (attr *strSeqAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.strSeq[attr.index]
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}

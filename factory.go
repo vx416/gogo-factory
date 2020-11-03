@@ -171,7 +171,11 @@ func (f *Factory) build(insert bool) (*Object, error) {
 		if !field.IsValid() {
 			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
 		}
-		fieldVal, err := attr.SetField(data, field, attrItem)
+		fieldType, found := val.Type().FieldByName(attrItem.Name())
+		if !found {
+
+		}
+		fieldVal, err := attr.SetField(data, field, fieldType, attrItem)
 		if err != nil {
 			return nil, err
 		}

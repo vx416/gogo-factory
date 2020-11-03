@@ -19,6 +19,11 @@ type intAttribute struct {
 	val     int
 	genFunc func() int
 	process Processor
+	object  interface{}
+}
+
+func (attr *intAttribute) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr *intAttribute) Process(procFunc Processor) Attributer {
@@ -54,8 +59,9 @@ func (intAttribute) Kind() Type {
 
 func (attr *intAttribute) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -80,11 +86,16 @@ type seqIntAttr struct {
 	name    string
 	colName string
 	process Processor
+	object  interface{}
 }
 
 func (attr *seqIntAttr) Process(procFunc Processor) Attributer {
 	attr.process = procFunc
 	return attr
+}
+
+func (attr *seqIntAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr seqIntAttr) GetVal() interface{} {
@@ -106,8 +117,9 @@ func (attr seqIntAttr) ColName() string {
 
 func (attr *seqIntAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.intSet[attr.index]
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -143,11 +155,16 @@ type seqAttr struct {
 	name    string
 	colName string
 	process Processor
+	object  interface{}
 }
 
 func (attr *seqAttr) Process(procFunc Processor) Attributer {
 	attr.process = procFunc
 	return attr
+}
+
+func (attr *seqAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr seqAttr) GetVal() interface{} {
@@ -169,8 +186,9 @@ func (attr seqAttr) ColName() string {
 
 func (attr *seqAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.seq
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -202,11 +220,16 @@ type floatAttr struct {
 	val     float64
 	genFunc func() float64
 	process Processor
+	object  interface{}
 }
 
 func (attr *floatAttr) Process(procFunc Processor) Attributer {
 	attr.process = procFunc
 	return attr
+}
+
+func (attr *floatAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr floatAttr) GetVal() interface{} {
@@ -229,8 +252,9 @@ func (attr floatAttr) ColName() string {
 
 func (attr *floatAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -261,11 +285,16 @@ type uintAttr struct {
 	val     uint
 	genFunc func() uint
 	process Processor
+	object  interface{}
 }
 
 func (attr *uintAttr) Process(procFunc Processor) Attributer {
 	attr.process = procFunc
 	return attr
+}
+
+func (attr *uintAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr uintAttr) GetVal() interface{} {
@@ -288,8 +317,9 @@ func (attr uintAttr) ColName() string {
 
 func (attr *uintAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}

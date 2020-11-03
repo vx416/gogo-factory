@@ -25,8 +25,8 @@ func TestBasicAttributes(t *testing.T) {
 		attr.Seq("ID", 1),
 		attr.Str("Username", randomdata.LastName),
 		attr.StrSeq("Phone", phoneSet),
-		attr.Attr("Gender", func() interface{} { return int8(randomdata.Number(1, 2)) }),
-		attr.Int("Age", func() int { return randomdata.Number(1, 100) }),
+		attr.Int("Gender", func() int { return int(randomdata.Number(1, 2)) }),
+		attr.Attr("Age", func() interface{} { return int32(randomdata.Number(1, 100)) }),
 		attr.Float("Weight", func() float64 { return randomdata.Decimal(1, 20, 1) }),
 		attr.Float("Height", func() float64 { return randomdata.Decimal(1, 20, 1) }),
 	)

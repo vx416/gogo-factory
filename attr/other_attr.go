@@ -21,6 +21,11 @@ type attr struct {
 	genFunc func() interface{}
 	process Processor
 	val     interface{}
+	object  interface{}
+}
+
+func (attr *attr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr attr) ColName() string {
@@ -51,8 +56,9 @@ func (attr *attr) Process(procFunc Processor) Attributer {
 
 func (attr *attr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -81,6 +87,11 @@ type bytesAttr struct {
 	val     []byte
 	genFunc func() []byte
 	process Processor
+	object  interface{}
+}
+
+func (attr *bytesAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr *bytesAttr) Process(procFunc Processor) Attributer {
@@ -112,8 +123,9 @@ func (bytesAttr) Kind() Type {
 
 func (attr *bytesAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -138,6 +150,11 @@ type timeAttr struct {
 	colName string
 	genFunc func() time.Time
 	process Processor
+	object  interface{}
+}
+
+func (attr *timeAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr *timeAttr) Process(procFunc Processor) Attributer {
@@ -172,8 +189,9 @@ func (timeAttr) Kind() Type {
 
 func (attr *timeAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}
@@ -194,6 +212,11 @@ type boolAttr struct {
 	colName string
 	genFunc func() bool
 	process Processor
+	object  interface{}
+}
+
+func (attr *boolAttr) GetObject() interface{} {
+	return attr.object
 }
 
 func (attr *boolAttr) Process(procFunc Processor) Attributer {
@@ -228,8 +251,9 @@ func (boolAttr) Kind() Type {
 
 func (attr *boolAttr) Gen(data interface{}) (interface{}, error) {
 	attr.val = attr.genFunc()
+	attr.object = data
 	if attr.process != nil {
-		if err := attr.process(attr, data); err != nil {
+		if err := attr.process(attr); err != nil {
 			return nil, err
 		}
 	}

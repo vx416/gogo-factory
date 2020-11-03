@@ -32,7 +32,7 @@ const (
 )
 
 // Processor define process method interface
-type Processor func(attr Attributer, data interface{}) error
+type Processor func(attr Attributer) error
 
 // Attributer define attribute interface for factory
 type Attributer interface {
@@ -43,9 +43,10 @@ type Attributer interface {
 	Process(process Processor) Attributer
 	GetVal() interface{}
 	SetVal(val interface{}) error
+	GetObject() interface{}
 }
 
-func SetField(data interface{}, field reflect.Value, attr Attributer) (interface{}, error) {
+func SetField(data interface{}, field reflect.Value, fieldType reflect.StructField, attr Attributer) (interface{}, error) {
 	val, err := attr.Gen(data)
 	if err != nil {
 		return nil, err

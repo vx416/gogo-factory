@@ -10,11 +10,13 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type Gender int8
+
 type User struct {
 	ID        int64
 	Username  string
 	Phone     string
-	Gender    int8
+	Gender    Gender
 	Age       int32
 	Host      bool
 	Height    float32
