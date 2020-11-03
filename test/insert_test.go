@@ -92,18 +92,18 @@ func (suite *sqliteSuite) SetupSuite() {
 
 func (suite *sqliteSuite) TestInsertWithFullAssociation() {
 	locationFactory := factory.New(
-		func() interface{} { return &Location{} },
+		&Location{},
 		attr.Seq("ID", 1, "id"),
 		attr.Str("Address", randomdata.Address, "address"),
 	).Table("locations")
 
 	homeFactory := factory.New(
-		func() interface{} { return &Home{} },
+		&Home{},
 		attr.Seq("ID", 1, "id"),
 	).Fix("HostID", "host_id").FAssociate("Location", locationFactory, 1, true, nil, "location_id").Table("homes")
 
 	userFactory := factory.New(
-		func() interface{} { return &User{CreatedAt: time.Now()} },
+		&User{CreatedAt: time.Now()},
 		attr.Seq("ID", 1, "id"),
 		attr.Str("Username", randutil.NameRander(3), "username"),
 		attr.Int("Age", randutil.IntRander(25, 50), "age"),

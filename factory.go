@@ -7,14 +7,25 @@ import (
 	"github.com/vicxu416/gogo-factory/attr"
 )
 
-type Template func() interface{}
+type Template func() reflect.Value
 type Inserter interface {
 	Insert(data interface{}) error
 }
 
-func New(src Template, attrs ...attr.Attributer) *Factory {
+func newTemplate(object interface{}) Template {
+	val := reflect.ValueOf(object)
+	objType := val.Type()
+	if val.Kind() == reflect.Ptr {
+		objType = val.Elem().Type()
+	}
+	return func() reflect.Value {
+		return reflect.New(objType)
+	}
+}
+
+func New(obj interface{}, attrs ...attr.Attributer) *Factory {
 	return &Factory{
-		src:          src,
+		src:          newTemplate(obj),
 		attrs:        attrs,
 		omits:        make(map[string]bool),
 		insertQueue:  &ObjectsQueue{q: &Queue{}},
@@ -155,8 +166,8 @@ func (f *Factory) Associate(name string, other *Factory, n int, before bool, pro
 }
 
 func (f *Factory) build(insert bool) (*Object, error) {
-	data := f.src()
-	val := reflect.ValueOf(data)
+	val := f.src()
+	data := val.Interface()
 	if val.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("build: template data should be a pointer")
 	}
@@ -175,7 +186,7 @@ func (f *Factory) build(insert bool) (*Object, error) {
 		if !found {
 
 		}
-		fieldVal, err := attr.SetField(data, field, fieldType, attrItem)
+		fieldVal, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
 		if err != nil {
 			return nil, err
 		}

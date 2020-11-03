@@ -21,7 +21,7 @@ func between(t *testing.T, target, max, min int) {
 func TestBasicAttributes(t *testing.T) {
 	phoneSet := []string{"091234567", "09765432", "096789234"}
 	userFactory := factory.New(
-		func() interface{} { return &User{CreatedAt: time.Now(), Host: true} },
+		&User{CreatedAt: time.Now(), Host: true},
 		attr.Seq("ID", 1),
 		attr.Str("Username", randomdata.LastName),
 		attr.StrSeq("Phone", phoneSet),
@@ -50,7 +50,7 @@ func TestRandAttr(t *testing.T) {
 	phoneSet := []string{"090123543", "0954323123", "0924325345"}
 	minTime, maxTime := time.Now().Add(-30*24*time.Hour), time.Now()
 	userFactory := factory.New(
-		func() interface{} { return &User{} },
+		&User{},
 		attr.Seq("ID", 1),
 		attr.Str("Username", randutil.StrSetRander(userNameSet...)),
 		attr.Str("Phone", randutil.StrSetRander(phoneSet...)),
@@ -76,7 +76,7 @@ func TestNullableFields(t *testing.T) {
 	minTime, maxTime := time.Now().Add(-30*24*time.Hour), time.Now()
 	stringSet := []string{"ptr_string_1", "ptr_string_2"}
 	userFactory := factory.New(
-		func() interface{} { return &User{} },
+		&User{},
 		attr.Seq("ID", 1),
 		attr.Time("UpdatedAt", randutil.TimeRander(minTime, maxTime)),
 		attr.Str("PtrString", randutil.StrSetRander(stringSet...)),
@@ -89,12 +89,12 @@ func TestNullableFields(t *testing.T) {
 
 func TestFAssociate(t *testing.T) {
 	homeFactory := factory.New(
-		func() interface{} { return &Home{} },
+		&Home{},
 		attr.Seq("ID", 1),
 	)
 
 	userFactory := factory.New(
-		func() interface{} { return &User{} },
+		&User{},
 		attr.Seq("ID", 1),
 	).FAssociate("Home", homeFactory, 1, false, func(data, depend interface{}) error {
 		user := data.(*User)
@@ -120,12 +120,12 @@ func TestFAssociate(t *testing.T) {
 
 func TestAssociate(t *testing.T) {
 	homeFactory := factory.New(
-		func() interface{} { return &Home{} },
+		&Home{},
 		attr.Seq("ID", 1),
 	)
 
 	userFactory := factory.New(
-		func() interface{} { return &User{} },
+		&User{},
 		attr.Seq("ID", 1),
 	)
 

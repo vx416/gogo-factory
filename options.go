@@ -1,15 +1,16 @@
 package factory
 
 import (
-	"strings"
 	"database/sql"
+	"strings"
 )
 
 var options = &Options{}
 
 type Options struct {
-	db     *sql.DB
-	driver string
+	db      *sql.DB
+	driver  string
+	tagName string
 }
 
 func DB(db *sql.DB, driver string) {
