@@ -200,7 +200,7 @@ func (f *Factory) build(insert bool) (*dbutil.Object, error) {
 		}
 		fieldType, found := val.Type().FieldByName(attrItem.Name())
 		if !found {
-
+			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
 		}
 		_, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
 		if err != nil {
@@ -218,7 +218,7 @@ func (f *Factory) build(insert bool) (*dbutil.Object, error) {
 		}
 		fieldType, found := val.Type().FieldByName(attrItem.Name())
 		if !found {
-
+			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
 		}
 		_, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
 		if err != nil {
@@ -230,7 +230,6 @@ func (f *Factory) build(insert bool) (*dbutil.Object, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	object := &dbutil.Object{
 		Data:        data,
 		FieldColumn: f.getFieldColumns(),

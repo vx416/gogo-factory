@@ -18,40 +18,41 @@ type dependency struct {
 	fix     bool
 }
 
-func (dep *dependency) build(data interface{}, insert bool, queue *ObjectsQueue, after bool) ([]*dbutil.Object, error) {
+func (dep *dependency) build(data interface{}, insert bool, queue *ObjectsQueue) error {
 	objects := make([]*dbutil.Object, dep.num)
 
 	for i := range objects {
 		object, err := dep.factory.build(insert)
 		if err != nil {
-			return nil, err
+			dep.factory.clear()
+			return err
 		}
 		objects[i] = object
 		if dep.process != nil {
 			if err := dep.process(data, object.Data); err != nil {
-				return nil, err
+				dep.factory.clear()
+				return err
 			}
 		}
 		queue.q.Enqueue(dep.factory.insertQueue.q.head)
-
 		dep.factory.clear()
 	}
 
 	if len(objects) == 1 {
 		if err := dep.setField(data, objects[0].Data); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	if len(objects) > 1 {
 		for i := range objects {
 			if err := dep.setSlice(data, objects[i].Data); err != nil {
-				return nil, err
+				return err
 			}
 		}
 	}
 
-	return objects, nil
+	return nil
 }
 
 func (dep *dependency) setSlice(data interface{}, dependData interface{}) error {
@@ -125,7 +126,7 @@ func (dm *DependencyManager) buildBefore(data interface{}, queue *ObjectsQueue, 
 	scanner := dm.before.Scan()
 
 	for depend := scanner(); depend != nil; depend = scanner() {
-		_, err := depend.build(data, insert, queue, false)
+		err := depend.build(data, insert, queue)
 		if err != nil {
 			return err
 		}
@@ -138,7 +139,7 @@ func (dm *DependencyManager) buildAfter(data interface{}, queue *ObjectsQueue, i
 	scanner := dm.after.Scan()
 
 	for depend := scanner(); depend != nil; depend = scanner() {
-		_, err := depend.build(data, insert, queue, true)
+		err := depend.build(data, insert, queue)
 		if err != nil {
 			return err
 		}
