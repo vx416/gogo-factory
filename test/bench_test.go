@@ -15,7 +15,7 @@ func BenchmarkCreate(b *testing.B) {
 	if err != nil {
 		b.Fatalf("err:%+v", err)
 	}
-	factory.DB(db, "sqlite3")
+	factory.Opt().SetDB(db, "sqlite3")
 	locationFactory := factory.New(
 		func() interface{} { return &Location{} },
 		attr.Seq("ID", 1, "id"),
@@ -25,7 +25,7 @@ func BenchmarkCreate(b *testing.B) {
 	homeFactory := factory.New(
 		func() interface{} { return &Home{} },
 		attr.Seq("ID", 1, "id"),
-	).Fix("HostID", "host_id").FAssociate("Location", locationFactory, 1, true, nil, "location_id").Table("homes")
+	).Columns(factory.Col("HostID", "host_id")).FAssociate("Location", locationFactory, 1, true, nil, "location_id").Table("homes")
 
 	userFactory := factory.New(
 		func() interface{} { return &User{CreatedAt: time.Now()} },

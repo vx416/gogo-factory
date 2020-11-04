@@ -5,54 +5,73 @@ import (
 	"reflect"
 
 	"github.com/vicxu416/gogo-factory/attr"
+	"github.com/vicxu416/gogo-factory/dbutil"
 )
 
 type Template func() reflect.Value
-type Inserter interface {
-	Insert(data interface{}) error
-}
 
 func newTemplate(object interface{}) Template {
 	val := reflect.ValueOf(object)
 	objType := val.Type()
 	if val.Kind() == reflect.Ptr {
-		objType = val.Elem().Type()
+		val = val.Elem()
+		objType = val.Type()
 	}
 	return func() reflect.Value {
-		return reflect.New(objType)
+		obj := reflect.New(objType)
+		elem := obj.Elem()
+		for i := 0; i < elem.NumField(); i++ {
+			elem.Field(i).Set(val.Field(i))
+		}
+		return obj
+	}
+}
+
+type ColField func(fieldColumns map[string][]string)
+
+func Col(s ...string) ColField {
+	return func(fieldColumns map[string][]string) {
+		if len(s) == 2 {
+			fieldColumns[s[0]] = []string{s[1]}
+		}
+		if len(s) == 3 {
+			fieldColumns[s[0]] = []string{s[1], s[2]}
+		}
 	}
 }
 
 func New(obj interface{}, attrs ...attr.Attributer) *Factory {
+	fieldColumns := make(map[string][]string)
+
+	for _, a := range attrs {
+		fieldColumns[a.Name()] = []string{a.ColName()}
+	}
+
 	return &Factory{
 		src:          newTemplate(obj),
 		attrs:        attrs,
 		omits:        make(map[string]bool),
 		insertQueue:  &ObjectsQueue{q: &Queue{}},
 		dependManger: NewDepMan(),
-		tempFields:   make([]*tmepField, 0, 1),
+		tempAttr:     make([]attr.Attributer, 0, 1),
 		fixFields:    make(map[string]string),
+		fieldColumns: fieldColumns,
 	}
-}
-
-type tmepField struct {
-	colName string
-	field   string
-	data    interface{}
 }
 
 type Factory struct {
 	table         string
 	src           Template
-	insertFunc    InsertFunc
+	insertFunc    dbutil.InsertFunc
 	attrs         []attr.Attributer
 	beforeFactory map[string]*Factory
 	afterFactory  map[string]*Factory
 	omits         map[string]bool
-	tempFields    []*tmepField
+	tempAttr      []attr.Attributer
 	fixFields     map[string]string
 	insertQueue   *ObjectsQueue
 	dependManger  *DependencyManager
+	fieldColumns  map[string][]string
 }
 
 func (f *Factory) Table(tableName string) *Factory {
@@ -60,7 +79,7 @@ func (f *Factory) Table(tableName string) *Factory {
 	return f
 }
 
-func (f *Factory) Inserter(fn InsertFunc) *Factory {
+func (f *Factory) InsertFunc(fn dbutil.InsertFunc) *Factory {
 	f.insertFunc = fn
 	return f
 }
@@ -71,7 +90,7 @@ func (f *Factory) MustBuild() interface{} {
 	if err != nil {
 		panic(err)
 	}
-	return obj.data
+	return obj.Data
 }
 
 func (f *Factory) Build() (interface{}, error) {
@@ -80,7 +99,7 @@ func (f *Factory) Build() (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return obj.data, nil
+	return obj.Data, nil
 }
 
 func (f *Factory) MustInsert() interface{} {
@@ -94,7 +113,7 @@ func (f *Factory) MustInsert() interface{} {
 		panic(err)
 	}
 	f.clear()
-	return obj.data
+	return obj.Data
 }
 
 func (f *Factory) Insert() (interface{}, error) {
@@ -108,7 +127,7 @@ func (f *Factory) Insert() (interface{}, error) {
 		return nil, err
 	}
 	f.clear()
-	return obj.data, nil
+	return obj.Data, nil
 }
 
 func (f *Factory) Omit(fields ...string) *Factory {
@@ -118,17 +137,15 @@ func (f *Factory) Omit(fields ...string) *Factory {
 	return f
 }
 
-func (f *Factory) Fix(fields ...string) *Factory {
-	for i := 0; i < len(fields); i += 2 {
-		fieldName := fields[i]
-		colName := ""
-		if i+1 < len(fields) {
-			colName = fields[i+1]
-		}
-		if colName != "" && fieldName != "" {
-			f.fixFields[fieldName] = colName
-		}
+func (f *Factory) Columns(fields ...ColField) *Factory {
+	for _, field := range fields {
+		field(f.fieldColumns)
 	}
+	return f
+}
+
+func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
+	f.tempAttr = attrs
 	return f
 }
 
@@ -165,7 +182,7 @@ func (f *Factory) Associate(name string, other *Factory, n int, before bool, pro
 	return f
 }
 
-func (f *Factory) build(insert bool) (*Object, error) {
+func (f *Factory) build(insert bool) (*dbutil.Object, error) {
 	val := f.src()
 	data := val.Interface()
 	if val.Kind() != reflect.Ptr {
@@ -173,7 +190,6 @@ func (f *Factory) build(insert bool) (*Object, error) {
 	}
 	val = val.Elem()
 
-	colVals := make(map[string]interface{})
 	for _, attrItem := range f.attrs {
 		if f.omits[attrItem.Name()] {
 			continue
@@ -186,45 +202,62 @@ func (f *Factory) build(insert bool) (*Object, error) {
 		if !found {
 
 		}
-		fieldVal, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
+		_, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
 		if err != nil {
 			return nil, err
 		}
-		if fieldVal != nil && attrItem.ColName() != "" {
-			colVals[attrItem.ColName()] = fieldVal
+	}
+
+	for _, attrItem := range f.tempAttr {
+		if f.omits[attrItem.Name()] {
+			continue
+		}
+		field := val.FieldByName(attrItem.Name())
+		if !field.IsValid() {
+			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
+		}
+		fieldType, found := val.Type().FieldByName(attrItem.Name())
+		if !found {
+
+		}
+		_, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
+		if err != nil {
+			return nil, err
 		}
 	}
-	f.setFixFields(data, colVals)
 
-	err := f.dependManger.buildBefore(data, f.insertQueue, insert, colVals)
+	err := f.dependManger.buildBefore(data, f.insertQueue, insert)
 	if err != nil {
 		return nil, err
 	}
 
-	object := &Object{
-		data:       data,
-		colVals:    colVals,
-		insert:     insert,
-		insertFunc: f.insertFunc,
-		table:      f.table,
+	object := &dbutil.Object{
+		Data:        data,
+		FieldColumn: f.getFieldColumns(),
+		NeedInsert:  insert,
+		InsertFunc:  f.getInsertFunc(),
+		Table:       f.table,
+		DB:          options.DB,
+		Driver:      options.Driver,
 	}
 	f.insertQueue.Enqueue(object)
 	err = f.dependManger.buildAfter(data, f.insertQueue, insert)
+
 	if err != nil {
 		return nil, err
 	}
 	return object, nil
 }
 
-func (f *Factory) setFixFields(data interface{}, colVals map[string]interface{}) {
-	val := reflect.ValueOf(data)
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+func (f *Factory) getFieldColumns() map[string][]string {
+	clonedFieldColumns := make(map[string][]string)
+	for k, v := range f.fieldColumns {
+		clonedFieldColumns[k] = v
 	}
-	for fieldName, colName := range f.fixFields {
-		field := val.FieldByName(fieldName)
-		colVals[colName] = field.Interface()
+	for _, tempAttr := range f.tempAttr {
+		clonedFieldColumns[tempAttr.Name()] = []string{tempAttr.ColName()}
 	}
+	return clonedFieldColumns
 }
 
 func (f *Factory) insert() error {
@@ -243,5 +276,13 @@ func (f *Factory) insert() error {
 func (f *Factory) clear() {
 	f.insertQueue.clear()
 	f.dependManger.clear()
+	f.tempAttr = make([]attr.Attributer, 0, 1)
 	f.omits = make(map[string]bool)
+}
+
+func (f *Factory) getInsertFunc() dbutil.InsertFunc {
+	if f.insertFunc != nil {
+		return f.insertFunc
+	}
+	return options.InsertFunc
 }

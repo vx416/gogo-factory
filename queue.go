@@ -44,6 +44,10 @@ func (queue *Queue) Enqueue(node *Node) {
 	node.prev = queue.tail
 	queue.tail = node
 	queue.len++
+	for queue.tail.next != nil {
+		queue.tail = queue.tail.next
+		queue.len++
+	}
 }
 
 func (queue *Queue) Dequeue() *Node {

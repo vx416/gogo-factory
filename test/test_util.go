@@ -17,7 +17,7 @@ type User struct {
 	Username  string
 	Phone     string
 	Gender    Gender
-	Age       int32
+	Age       *int32
 	Host      bool
 	Height    float32
 	Weight    float32

@@ -3,6 +3,8 @@ package factory
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/vicxu416/gogo-factory/dbutil"
 )
 
 type Processor func(data interface{}, dependency interface{}) error
@@ -16,8 +18,8 @@ type dependency struct {
 	fix     bool
 }
 
-func (dep *dependency) build(data interface{}, insert bool, queue *ObjectsQueue) ([]*Object, error) {
-	objects := make([]*Object, dep.num)
+func (dep *dependency) build(data interface{}, insert bool, queue *ObjectsQueue, after bool) ([]*dbutil.Object, error) {
+	objects := make([]*dbutil.Object, dep.num)
 
 	for i := range objects {
 		object, err := dep.factory.build(insert)
@@ -26,24 +28,24 @@ func (dep *dependency) build(data interface{}, insert bool, queue *ObjectsQueue)
 		}
 		objects[i] = object
 		if dep.process != nil {
-			if err := dep.process(data, object.data); err != nil {
+			if err := dep.process(data, object.Data); err != nil {
 				return nil, err
 			}
 		}
-		dep.factory.setFixFields(object.data, object.colVals)
-		queue.Enqueue(dep.factory.insertQueue.Head())
+		queue.q.Enqueue(dep.factory.insertQueue.q.head)
+
 		dep.factory.clear()
 	}
 
 	if len(objects) == 1 {
-		if err := dep.setField(data, objects[0].data); err != nil {
+		if err := dep.setField(data, objects[0].Data); err != nil {
 			return nil, err
 		}
 	}
 
 	if len(objects) > 1 {
 		for i := range objects {
-			if err := dep.setSlice(data, objects[i].data); err != nil {
+			if err := dep.setSlice(data, objects[i].Data); err != nil {
 				return nil, err
 			}
 		}
@@ -116,23 +118,16 @@ func (dm *DependencyManager) addBefore(depend *dependency) {
 }
 
 func (dm *DependencyManager) addAfter(depend *dependency) {
-
 	dm.after.Enqueue(depend)
 }
 
-func (dm *DependencyManager) buildBefore(data interface{}, queue *ObjectsQueue, insert bool, colVals map[string]interface{}) error {
+func (dm *DependencyManager) buildBefore(data interface{}, queue *ObjectsQueue, insert bool) error {
 	scanner := dm.before.Scan()
 
 	for depend := scanner(); depend != nil; depend = scanner() {
-		objects, err := depend.build(data, insert, queue)
+		_, err := depend.build(data, insert, queue, false)
 		if err != nil {
 			return err
-		}
-		for i := range objects {
-			queue.Enqueue(objects[i])
-		}
-		if depend.colName != "" && len(objects) == 1 {
-			colVals[depend.colName] = getID(objects[0].data)
 		}
 	}
 
@@ -143,12 +138,9 @@ func (dm *DependencyManager) buildAfter(data interface{}, queue *ObjectsQueue, i
 	scanner := dm.after.Scan()
 
 	for depend := scanner(); depend != nil; depend = scanner() {
-		objects, err := depend.build(data, insert, queue)
+		_, err := depend.build(data, insert, queue, true)
 		if err != nil {
 			return err
-		}
-		for i := range objects {
-			queue.Enqueue(objects[i])
 		}
 	}
 	return nil

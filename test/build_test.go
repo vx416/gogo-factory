@@ -66,7 +66,7 @@ func TestRandAttr(t *testing.T) {
 	assert.Subset(t, userNameSet, []string{user.Username})
 	assert.Subset(t, phoneSet, []string{user.Phone})
 	between(t, int(user.Gender), 2, 1)
-	between(t, int(user.Age), 100, 25)
+	between(t, int(*user.Age), 100, 25)
 	assert.InDelta(t, float64(user.Height), 90.0, 55.0)
 	assert.InDelta(t, float64(user.Weight), 190.0, 155.0)
 	between(t, int(user.CreatedAt.Unix()), int(maxTime.Unix()), int(minTime.Unix()))

@@ -97,8 +97,30 @@ func NameRander(gender int) func() string {
 	}
 }
 
-func NowRander() func() time.Time {
-	return func() time.Time {
-		return time.Now()
+func NowRander() time.Time {
+	return time.Now()
+}
+
+func IntFix(val int) func() int {
+	return func() int {
+		return val
+	}
+}
+
+func UintFix(val uint) func() uint {
+	return func() uint {
+		return val
+	}
+}
+
+func StrFix(str string) func() string {
+	return func() string {
+		return str
+	}
+}
+
+func FloatFix(val float64) func() float64 {
+	return func() float64 {
+		return val
 	}
 }
