@@ -50,3 +50,8 @@ func getFieldValue(data interface{}, fieldName string) interface{} {
 	}
 	return nil
 }
+
+func makeSlice(data interface{}, cap int) reflect.Value {
+	val := reflect.ValueOf(data)
+	return reflect.MakeSlice(reflect.SliceOf(val.Type()), 0, cap)
+}

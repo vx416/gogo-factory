@@ -26,11 +26,19 @@ type User struct {
 	PtrString *string
 	Home      *Home
 	Rented    []*Home
+	Countries []*Country
+}
+
+type Country struct {
+	ID     int64
+	HostID int64
+	Homes  []*Home
 }
 
 type Home struct {
 	ID        int64
 	HostID    int64
+	CountryID int64
 	CreatedAt time.Time
 	Location  *Location
 }

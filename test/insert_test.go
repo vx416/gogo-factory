@@ -1,4 +1,4 @@
-package insert_test
+package test
 
 import (
 	"database/sql"
@@ -28,4 +28,8 @@ type insertSuite struct {
 
 func (suite *insertSuite) SetupSuite() {
 	factory.Opt().SetDB(suite.db, suite.dbType)
+}
+
+func (suite *insertSuite) AfterTest() {
+
 }

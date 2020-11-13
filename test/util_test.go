@@ -1,4 +1,4 @@
-package insert_test
+package test
 
 import (
 	"database/sql"

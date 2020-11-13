@@ -23,7 +23,7 @@ type Association struct {
 
 func (as *Association) clone() *Association {
 	return &Association{
-		factory:    as.factory,
+		factory:    as.factory.Clone(),
 		fieldName:  as.fieldName,
 		colName:    as.colName,
 		foreignKey: as.foreignKey,
@@ -33,28 +33,33 @@ func (as *Association) clone() *Association {
 }
 
 func (as *Association) ReferField(referField string) *Association {
-	as.referField = referField
-	return as
+	cloned := as.clone()
+	cloned.referField = referField
+	return cloned
 }
 
 func (as *Association) FieldName(fieldName string) *Association {
-	as.fieldName = fieldName
-	return as
+	cloned := as.clone()
+	cloned.fieldName = fieldName
+	return cloned
 }
 
 func (as *Association) ColumnName(colName string) *Association {
-	as.colName = colName
-	return as
+	cloned := as.clone()
+	cloned.colName = colName
+	return cloned
 }
 
 func (as *Association) ForeignField(foreignKey string) *Association {
-	as.foreignKey = foreignKey
-	return as
+	cloned := as.clone()
+	cloned.foreignKey = foreignKey
+	return cloned
 }
 
 func (as *Association) Num(num int32) *Association {
-	as.num = num
-	return as
+	cloned := as.clone()
+	cloned.num = num
+	return cloned
 }
 
 func (as *Association) buildFieldValue(val reflect.Value) (*fieldValue, error) {
@@ -80,23 +85,23 @@ func (as *Association) build(val reflect.Value, insert bool, parent *Factory, as
 
 	for i := range objects {
 		var (
-			object interface{}
-			err    error
-			pass   bool
+			object  interface{}
+			err     error
+			pass    bool
+			clonedF = as.factory.Clone()
 		)
-
 		if asType == HasOneOrMany {
 			fv, err := as.buildFieldValue(val)
 			if err != nil {
 				return nil, err
 			}
 			if fv != nil {
-				object, err = as.factory.buildObjectFor(insert, parent, fv)
+				object, err = clonedF.buildObjectFor(insert, parent, fv)
 				pass = true
 			}
 		}
 		if !pass {
-			object, err = as.factory.buildObjectFor(insert, parent)
+			object, err = clonedF.buildObjectFor(insert, parent)
 		}
 
 		if err != nil {
@@ -190,9 +195,13 @@ type Associations struct {
 
 func (ass *Associations) clone() *Associations {
 	belongsTo := make([]*Association, len(ass.belongsTo))
-	copy(belongsTo, ass.belongsTo)
+	for i := range ass.belongsTo {
+		belongsTo[i] = ass.belongsTo[i].clone()
+	}
 	hasOneOrMany := make([]*Association, len(ass.hasOneOrMany))
-	copy(hasOneOrMany, ass.hasOneOrMany)
+	for i := range ass.hasOneOrMany {
+		hasOneOrMany[i] = ass.hasOneOrMany[i].clone()
+	}
 	return &Associations{
 		belongsTo:    belongsTo,
 		hasOneOrMany: hasOneOrMany,
@@ -207,7 +216,7 @@ func (ass *Associations) addHasOneOrMany(as *Association) {
 	ass.hasOneOrMany = append(ass.hasOneOrMany, as)
 }
 
-func (ass Associations) clear() {
+func (ass *Associations) clear() {
 	ass.belongsTo = ass.belongsTo[:0]
 	ass.hasOneOrMany = ass.hasOneOrMany[:0]
 }

@@ -35,6 +35,21 @@ func testHasMany(t *testing.T, user *User, num int) {
 	}
 }
 
+func testManyAndMany(t *testing.T, user *User, belongsTo bool) {
+	assert.NotZero(t, user.ID)
+	assert.NotEmpty(t, user.Countries)
+	for _, country := range user.Countries {
+		assert.NotZero(t, country.ID)
+		assert.NotEmpty(t, country.Homes)
+		for _, home := range country.Homes {
+			assert.NotZero(t, home.ID)
+			if belongsTo {
+				testBelongsTo(t, home)
+			}
+		}
+	}
+}
+
 func TestBelongsTo(t *testing.T) {
 	homeFactory := factory.New(
 		&Home{},
@@ -69,6 +84,8 @@ func TestHasOne(t *testing.T) {
 	assert.NoError(t, err)
 	user := userData.(*User)
 	testHasOne(t, user)
+	user2 := userFactory.MustBuild().(*User)
+	assert.Nil(t, user2.Home)
 }
 
 func TestHasMany(t *testing.T) {
@@ -84,7 +101,7 @@ func TestHasMany(t *testing.T) {
 	)
 
 	homeAss := homeFactory.ToAssociation().ReferField("ID").ForeignField("HostID")
-	userData, err := userFactory.HasMany("Rented", 5, homeAss).Build()
+	userData, err := userFactory.HasMany("Rented", homeAss, 5).Build()
 	assert.NoError(t, err)
 	user := userData.(*User)
 	testHasMany(t, user, 5)
@@ -103,11 +120,34 @@ func TestHasOneAndMany(t *testing.T) {
 	)
 
 	homeAss := homeFactory.ToAssociation().ReferField("ID").ForeignField("HostID")
-	userData, err := userFactory.HasOne("Home", homeAss).HasMany("Rented", 5, homeAss).Build()
+	userData, err := userFactory.HasOne("Home", homeAss).HasMany("Rented", homeAss, 5).Build()
 	assert.NoError(t, err)
 	user := userData.(*User)
 	testHasOne(t, user)
 	testHasMany(t, user, 5)
+}
+
+func TestManyAndMany(t *testing.T) {
+	userFactory := factory.New(
+		&User{},
+		attr.Seq("ID", 1),
+		attr.Int("Gender", randutil.IntRander(1, 2)),
+	)
+
+	homeFactory := factory.New(
+		&Home{},
+		attr.Seq("ID", 1),
+	)
+
+	country := factory.New(
+		&Country{},
+		attr.Seq("ID", 1),
+	)
+
+	homeAss := homeFactory.ToAssociation().ReferField("ID").ForeignField("CountryID")
+	countryAss := country.HasMany("Homes", homeAss, 10).ToAssociation().ReferField("ID").ForeignField("HostID")
+	user := userFactory.HasMany("Countries", countryAss, 5).MustBuild().(*User)
+	testManyAndMany(t, user, false)
 }
 
 func TestAllAssociations(t *testing.T) {
@@ -127,11 +167,24 @@ func TestAllAssociations(t *testing.T) {
 		attr.Seq("ID", 1),
 	)
 
+	country := factory.New(
+		&Country{},
+		attr.Seq("ID", 1),
+	)
+
 	homeAss := homeFactory.BelongsTo("Location", locFactory.ToAssociation()).ToAssociation().ReferField("ID").ForeignField("HostID")
-	userData, err := userFactory.HasOne("Home", homeAss).HasMany("Rented", 5, homeAss).Build()
+	countryHomeAss := homeAss.ReferField("ID").ForeignField("CountryID")
+	countryAss := country.HasMany("Homes", countryHomeAss, 10).ToAssociation().ReferField("ID").ForeignField("HostID")
+	userData, err := userFactory.HasOne("Home", homeAss).HasMany("Rented", homeAss, 5).HasMany("Countries", countryAss, 5).Build()
 	assert.NoError(t, err)
 	user := userData.(*User)
 	testHasOne(t, user)
 	testHasMany(t, user, 5)
 	testBelongsTo(t, user.Home)
+	for i := range user.Rented {
+		testBelongsTo(t, user.Rented[i])
+	}
+	testManyAndMany(t, user, true)
+	home := homeFactory.MustBuild().(*Home)
+	assert.Nil(t, home.Location)
 }

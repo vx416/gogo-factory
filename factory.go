@@ -1,6 +1,8 @@
 package factory
 
 import (
+	"reflect"
+
 	"github.com/vicxu416/gogo-factory/attr"
 	"github.com/vicxu416/gogo-factory/dbutil"
 )
@@ -90,6 +92,21 @@ func (f *Factory) Insert() (interface{}, error) {
 	return object, nil
 }
 
+func (f *Factory) MustBuildN(n int) interface{} {
+	defer f.clear()
+	objects, err := f.buildN(n, false)
+	if err != nil {
+		f.clear()
+		panic(err)
+	}
+	return objects
+}
+
+func (f *Factory) BuildN(n int) (interface{}, error) {
+	defer f.clear()
+	return f.buildN(n, false)
+}
+
 func (f *Factory) Omit(fields ...string) *Factory {
 	for _, field := range fields {
 		f.omits[field] = true
@@ -103,18 +120,21 @@ func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
 }
 
 func (f *Factory) BelongsTo(fieldName string, ass *Association) *Factory {
-	f.associations.addBelongsTo(ass.FieldName(fieldName).Num(1).clone())
-	return f
+	cloned := f.Clone()
+	cloned.associations.addBelongsTo(ass.FieldName(fieldName).Num(1))
+	return cloned
 }
 
 func (f *Factory) HasOne(fieldName string, ass *Association) *Factory {
-	f.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(1).clone())
-	return f
+	cloned := f.Clone()
+	cloned.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(1))
+	return cloned
 }
 
-func (f *Factory) HasMany(fieldName string, num int32, ass *Association) *Factory {
-	f.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(num).clone())
-	return f
+func (f *Factory) HasMany(fieldName string, ass *Association, num int32) *Factory {
+	cloned := f.Clone()
+	cloned.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(num))
+	return cloned
 }
 
 func (f *Factory) ToAssociation() *Association {
@@ -134,6 +154,25 @@ func (f *Factory) Clone() *Factory {
 		insertJobsQueue: NewInsertJobQueue(),
 		associations:    f.associations.clone(),
 	}
+}
+
+func (f *Factory) buildN(n int, insert bool) (interface{}, error) {
+	if n == 0 {
+
+	}
+	values := make([]reflect.Value, 0, n)
+	for i := 0; i < n; i++ {
+		cloned := f.Clone()
+		object, err := cloned.buildObjectFor(insert, f)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, reflect.ValueOf(object))
+	}
+
+	sliceVal := makeSlice(values[0].Interface(), n)
+	sliceVal = reflect.Append(sliceVal, values...)
+	return sliceVal.Interface(), nil
 }
 
 func (f *Factory) build(insert bool, fieldValues ...*fieldValue) (interface{}, *dbutil.InsertJob, error) {
