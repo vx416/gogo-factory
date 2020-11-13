@@ -1,77 +1,38 @@
 package factory
 
 import (
-	"fmt"
-	"reflect"
-
 	"github.com/vicxu416/gogo-factory/attr"
 	"github.com/vicxu416/gogo-factory/dbutil"
 )
 
-type Template func() reflect.Value
-
-func newTemplate(object interface{}) Template {
-	val := reflect.ValueOf(object)
-	objType := val.Type()
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
-		objType = val.Type()
-	}
-	return func() reflect.Value {
-		obj := reflect.New(objType)
-		elem := obj.Elem()
-		for i := 0; i < elem.NumField(); i++ {
-			elem.Field(i).Set(val.Field(i))
-		}
-		return obj
-	}
-}
-
-type ColField func(fieldColumns map[string][]string)
-
-func Col(s ...string) ColField {
-	return func(fieldColumns map[string][]string) {
-		if len(s) == 2 {
-			fieldColumns[s[0]] = []string{s[1]}
-		}
-		if len(s) == 3 {
-			fieldColumns[s[0]] = []string{s[1], s[2]}
-		}
-	}
-}
-
 func New(obj interface{}, attrs ...attr.Attributer) *Factory {
-	fieldColumns := make(map[string][]string)
+	fieldColumns := make(map[string]string)
 
 	for _, a := range attrs {
-		fieldColumns[a.Name()] = []string{a.ColName()}
+		fieldColumns[a.Name()] = a.ColName()
 	}
 
 	return &Factory{
-		src:          newTemplate(obj),
-		attrs:        attrs,
-		omits:        make(map[string]bool),
-		insertQueue:  &ObjectsQueue{q: &Queue{}},
-		dependManger: NewDepMan(),
-		tempAttr:     make([]attr.Attributer, 0, 1),
-		fixFields:    make(map[string]string),
-		fieldColumns: fieldColumns,
+		initObj:         newConstructor(obj),
+		setter:          attrs,
+		fieldColumns:    fieldColumns,
+		omits:           make(map[string]bool),
+		insertJobsQueue: NewInsertJobQueue(),
+		tempSetter:      make([]attr.Attributer, 0, 1),
+		associations:    NewAssociations(),
 	}
 }
 
 type Factory struct {
-	table         string
-	src           Template
-	insertFunc    dbutil.InsertFunc
-	attrs         []attr.Attributer
-	beforeFactory map[string]*Factory
-	afterFactory  map[string]*Factory
-	omits         map[string]bool
-	tempAttr      []attr.Attributer
-	fixFields     map[string]string
-	insertQueue   *ObjectsQueue
-	dependManger  *DependencyManager
-	fieldColumns  map[string][]string
+	table           string
+	initObj         objectConstructor
+	insertFunc      dbutil.InsertFunc
+	setter          ObjectSetter
+	tempSetter      ObjectSetter
+	fieldColumns    map[string]string
+	omits           map[string]bool
+	insertJobsQueue *InsertJobsQueue
+	associations    *Associations
 }
 
 func (f *Factory) Table(tableName string) *Factory {
@@ -85,25 +46,27 @@ func (f *Factory) InsertFunc(fn dbutil.InsertFunc) *Factory {
 }
 
 func (f *Factory) MustBuild() interface{} {
-	obj, err := f.build(false)
-	f.clear()
+	defer f.clear()
+	object, _, err := f.build(false)
 	if err != nil {
+		f.clear()
 		panic(err)
 	}
-	return obj.Data
+	return object
 }
 
 func (f *Factory) Build() (interface{}, error) {
-	obj, err := f.build(false)
-	f.clear()
+	defer f.clear()
+	object, _, err := f.build(false)
 	if err != nil {
 		return nil, err
 	}
-	return obj.Data, nil
+	return object, nil
 }
 
 func (f *Factory) MustInsert() interface{} {
-	obj, err := f.build(true)
+	defer f.clear()
+	object, _, err := f.build(true)
 	if err != nil {
 		f.clear()
 		panic(err)
@@ -112,22 +75,19 @@ func (f *Factory) MustInsert() interface{} {
 		f.clear()
 		panic(err)
 	}
-	f.clear()
-	return obj.Data
+	return object
 }
 
 func (f *Factory) Insert() (interface{}, error) {
-	obj, err := f.build(true)
+	defer f.clear()
+	object, _, err := f.build(true)
 	if err != nil {
-		f.clear()
 		return nil, err
 	}
 	if err := f.insert(); err != nil {
-		f.clear()
 		return nil, err
 	}
-	f.clear()
-	return obj.Data, nil
+	return object, nil
 }
 
 func (f *Factory) Omit(fields ...string) *Factory {
@@ -137,134 +97,114 @@ func (f *Factory) Omit(fields ...string) *Factory {
 	return f
 }
 
-func (f *Factory) Columns(fields ...ColField) *Factory {
-	for _, field := range fields {
-		field(f.fieldColumns)
-	}
-	return f
-}
-
 func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
-	f.tempAttr = attrs
+	f.tempSetter = attrs
 	return f
 }
 
-func (f *Factory) FAssociate(name string, other *Factory, n int, before bool, process Processor, options ...string) *Factory {
-	depend := &dependency{
-		field:   name,
-		colName: getColName(options),
-		factory: other,
-		process: process,
-		num:     n,
-		fix:     true,
-	}
-	if before {
-		f.dependManger.addBefore(depend)
-		return f
-	}
-	f.dependManger.addAfter(depend)
+func (f *Factory) BelongsTo(fieldName string, ass *Association) *Factory {
+	f.associations.addBelongsTo(ass.FieldName(fieldName).Num(1).clone())
 	return f
 }
 
-func (f *Factory) Associate(name string, other *Factory, n int, before bool, process Processor, options ...string) *Factory {
-	depend := &dependency{
-		field:   name,
-		colName: getColName(options),
-		factory: other,
-		process: process,
-		num:     n,
-	}
-	if before {
-		f.dependManger.addBefore(depend)
-		return f
-	}
-	f.dependManger.addAfter(depend)
+func (f *Factory) HasOne(fieldName string, ass *Association) *Factory {
+	f.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(1).clone())
 	return f
 }
 
-func (f *Factory) build(insert bool) (*dbutil.Object, error) {
-	val := f.src()
-	data := val.Interface()
-	if val.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("build: template data should be a pointer")
-	}
-	val = val.Elem()
+func (f *Factory) HasMany(fieldName string, num int32, ass *Association) *Factory {
+	f.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(num).clone())
+	return f
+}
 
-	for _, attrItem := range f.attrs {
-		if f.omits[attrItem.Name()] {
+func (f *Factory) ToAssociation() *Association {
+	return &Association{
+		factory: f.Clone(),
+	}
+}
+
+func (f *Factory) Clone() *Factory {
+	return &Factory{
+		table:           f.table,
+		initObj:         f.initObj,
+		setter:          f.setter,
+		tempSetter:      f.tempSetter,
+		fieldColumns:    f.fieldColumns,
+		omits:           f.omits,
+		insertJobsQueue: NewInsertJobQueue(),
+		associations:    f.associations.clone(),
+	}
+}
+
+func (f *Factory) build(insert bool, fieldValues ...*fieldValue) (interface{}, *dbutil.InsertJob, error) {
+	var (
+		val       = f.initObj()
+		err       error
+		insertJob = &dbutil.InsertJob{}
+	)
+
+	err = f.setter.SetupObject(val, f.omits)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = f.tempSetter.SetupObject(val, f.omits)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	fieldColumns := f.getFieldColumns()
+	for i := range fieldValues {
+		fv := fieldValues[i]
+		if fv == nil {
 			continue
 		}
-		field := val.FieldByName(attrItem.Name())
-		if !field.IsValid() {
-			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
-		}
-		fieldType, found := val.Type().FieldByName(attrItem.Name())
-		if !found {
-			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
-		}
-		_, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
+		err := fv.SetupObject(val)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
+		}
+		if insert {
+			fieldColumns[fv.fieldName] = fv.colName
 		}
 	}
 
-	for _, attrItem := range f.tempAttr {
-		if f.omits[attrItem.Name()] {
-			continue
-		}
-		field := val.FieldByName(attrItem.Name())
-		if !field.IsValid() {
-			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
-		}
-		fieldType, found := val.Type().FieldByName(attrItem.Name())
-		if !found {
-			return nil, fmt.Errorf("build: field(%s) not found", attrItem.Name())
-		}
-		_, err := attr.SetField(val.Interface(), field, fieldType, attrItem)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err := f.dependManger.buildBefore(data, f.insertQueue, insert)
+	belongToValues, err := f.associations.buildBelongsTo(val, insert, f)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	object := &dbutil.Object{
-		Data:        data,
-		FieldColumn: f.getFieldColumns(),
-		NeedInsert:  insert,
-		InsertFunc:  f.getInsertFunc(),
-		Table:       f.table,
-		DB:          options.DB,
-		Driver:      options.Driver,
-	}
-	f.insertQueue.Enqueue(object)
-	err = f.dependManger.buildAfter(data, f.insertQueue, insert)
 
-	if err != nil {
-		return nil, err
+	if insert {
+		colValues := getColumnValues(val, fieldColumns)
+		for k, v := range belongToValues {
+			colValues[k] = v
+		}
+		insertJob = dbutil.NewJob(val, colValues)
+		insertJob.SetDB(options.DB, options.Driver, f.table, "")
+		insertJob.SetInsertFunc(f.getInsertFunc())
+		f.insertJobsQueue.Enqueue(insertJob)
 	}
-	return object, nil
+
+	err = f.associations.buildHasOneOrMany(val, insert, f)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return val.Interface(), insertJob, nil
 }
 
-func (f *Factory) getFieldColumns() map[string][]string {
-	clonedFieldColumns := make(map[string][]string)
+func (f *Factory) getFieldColumns() map[string]string {
+	clonedFieldColumns := make(map[string]string)
 	for k, v := range f.fieldColumns {
 		clonedFieldColumns[k] = v
-	}
-	for _, tempAttr := range f.tempAttr {
-		clonedFieldColumns[tempAttr.Name()] = []string{tempAttr.ColName()}
 	}
 	return clonedFieldColumns
 }
 
 func (f *Factory) insert() error {
-	object := f.insertQueue.Dequeue()
+	object := f.insertJobsQueue.Dequeue()
 	var err error
 	for object != nil {
 		err = object.Insert()
-		object = f.insertQueue.Dequeue()
+		object = f.insertJobsQueue.Dequeue()
 	}
 	if err != nil {
 		return err
@@ -273,9 +213,9 @@ func (f *Factory) insert() error {
 }
 
 func (f *Factory) clear() {
-	f.insertQueue.clear()
-	f.dependManger.clear()
-	f.tempAttr = make([]attr.Attributer, 0, 1)
+	f.insertJobsQueue.clear()
+	f.associations.clear()
+	f.tempSetter = make([]attr.Attributer, 0, 1)
 	f.omits = make(map[string]bool)
 }
 
@@ -284,4 +224,16 @@ func (f *Factory) getInsertFunc() dbutil.InsertFunc {
 		return f.insertFunc
 	}
 	return options.InsertFunc
+}
+
+func (f *Factory) buildObjectFor(insert bool, other *Factory, fieldValues ...*fieldValue) (interface{}, error) {
+	defer f.clear()
+	data, _, err := f.build(insert, fieldValues...)
+	if err != nil {
+		return nil, err
+	}
+	if insert {
+		other.insertJobsQueue.q.Enqueue(f.insertJobsQueue.q.head)
+	}
+	return data, nil
 }

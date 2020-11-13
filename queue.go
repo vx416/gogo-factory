@@ -1,5 +1,7 @@
 package factory
 
+import "github.com/vicxu416/gogo-factory/dbutil"
+
 type Node struct {
 	next *Node
 	prev *Node
@@ -70,4 +72,33 @@ func (queue *Queue) Scan() func() *Node {
 		curr = curr.next
 		return node
 	}
+}
+
+func NewInsertJobQueue() *InsertJobsQueue {
+	return &InsertJobsQueue{
+		q: &Queue{},
+	}
+}
+
+type InsertJobsQueue struct {
+	q *Queue
+}
+
+func (queue *InsertJobsQueue) clear() {
+	queue.q.clear()
+}
+
+func (queue *InsertJobsQueue) Enqueue(job *dbutil.InsertJob) {
+	node := &Node{
+		data: job,
+	}
+	queue.q.Enqueue(node)
+}
+
+func (queue *InsertJobsQueue) Dequeue() *dbutil.InsertJob {
+	node := queue.q.Dequeue()
+	if node == nil {
+		return nil
+	}
+	return node.data.(*dbutil.InsertJob)
 }

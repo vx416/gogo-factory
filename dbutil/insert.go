@@ -7,36 +7,36 @@ import (
 	"gorm.io/gorm"
 )
 
-func DefaultInsertFunc(obj *Object) error {
+func DefaultInsertFunc(job *InsertJob) error {
 	var (
 		colsStr, valuesStr string
 		values             = make([]interface{}, 0, 1)
 	)
-	if obj.DB == nil {
+	if job.db == nil {
 		return fmt.Errorf("insert: global database instance is nil")
 	}
-	if obj.Table == "" {
+	if job.table == "" {
 		return fmt.Errorf("insert: table name should not be empty")
 	}
 
-	for k, v := range obj.ColumnValues() {
+	for k, v := range job.columnValues {
 		colsStr += k + ", "
 		valuesStr += "?, "
 		values = append(values, v)
 	}
 	colsStr = strings.TrimRight(colsStr, ", ")
 	valuesStr = strings.TrimRight(valuesStr, ", ")
-	insertStmt := "INSERT INTO " + obj.Table + " (" + colsStr + ")" + " VALUES (" + valuesStr + ")"
-	insertStmt = rebind(bindType(obj.Driver), insertStmt)
-	_, err := obj.DB.Exec(insertStmt, values...)
+	insertStmt := "INSERT INTO " + job.table + " (" + colsStr + ")" + " VALUES (" + valuesStr + ")"
+	insertStmt = rebind(bindType(job.driver), insertStmt)
+	_, err := job.db.Exec(insertStmt, values...)
 	if err != nil {
 		return fmt.Errorf("sql insert failed, stmt:%s, values:%+v, err:%+v", insertStmt, values, err)
 	}
 	return nil
 }
 
-func GormV2InsertFunc(db *gorm.DB) func(obj *Object) error {
-	return func(obj *Object) error {
-		return db.Create(obj.Data).Error
+func GormV2InsertFunc(db *gorm.DB) func(job *InsertJob) error {
+	return func(job *InsertJob) error {
+		return db.Create(job.GetData()).Error
 	}
 }
