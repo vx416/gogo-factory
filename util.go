@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"database/sql/driver"
 	"reflect"
 )
 
@@ -32,6 +33,9 @@ func getElem(data interface{}) reflect.Value {
 }
 
 func getFieldElem(val reflect.Value, fieldName string) reflect.Value {
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
 	field := val.FieldByName(fieldName)
 	if field.Kind() == reflect.Ptr {
 		if field.IsNil() {
@@ -54,4 +58,28 @@ func getFieldValue(data interface{}, fieldName string) interface{} {
 func makeSlice(data interface{}, cap int) reflect.Value {
 	val := reflect.ValueOf(data)
 	return reflect.MakeSlice(reflect.SliceOf(val.Type()), 0, cap)
+}
+
+func fieldIsSlice(data interface{}, fieldName string) bool {
+	field := getFieldElem(getElem(data), fieldName)
+	return field.Kind() == reflect.Slice
+}
+
+func isPtr(val reflect.Value) bool {
+	return val.Kind() == reflect.Ptr
+}
+
+func IsValuer(field reflect.Value) (driver.Valuer, bool) {
+	var fieldRaw interface{}
+	fieldRaw = field.Interface()
+	if scanner, ok := fieldRaw.(driver.Valuer); ok {
+		return scanner, ok
+	}
+	if field.CanAddr() {
+		fieldRaw = field.Addr().Interface()
+	}
+	if scanner, ok := fieldRaw.(driver.Valuer); ok {
+		return scanner, ok
+	}
+	return nil, false
 }

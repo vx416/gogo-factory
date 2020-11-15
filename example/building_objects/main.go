@@ -12,9 +12,9 @@ import (
 	"github.com/Pallinder/go-randomdata"
 	"github.com/davecgh/go-spew/spew"
 	_ "github.com/mattn/go-sqlite3"
-	factory "github.com/vicxu416/gogo-factory"
-	"github.com/vicxu416/gogo-factory/attr"
-	"github.com/vicxu416/gogo-factory/randutil"
+	factory "github.com/vx416/gogo-factory"
+	"github.com/vx416/gogo-factory/attr"
+	"github.com/vx416/gogo-factory/genutil"
 )
 
 func main() {
@@ -32,12 +32,12 @@ func insertObject() {
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
 		attr.Seq("ID", 1, "id"),
-		attr.Str("Name", randutil.NameRander(3), "name"),
-		attr.Int("Gender", randutil.IntRander(1, 2), "gender"),
+		attr.Str("Name", genutil.NameRander(3), "name"),
+		attr.Int("Gender", genutil.IntRander(1, 2), "gender"),
 		attr.Str("Phone", randomdata.PhoneNumber, "phone"),
 		attr.Str("Address", randomdata.Address, "address"),
-		attr.Time("CreatedAt", randutil.NowRander(), "created_at"),
-		attr.Time("UpdatedAt", randutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
+		attr.Time("CreatedAt", genutil.NowRander(), "created_at"),
+		attr.Time("UpdatedAt", genutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
 	).Table("users")
 
 	for i := 0; i < 5; i++ {
@@ -50,12 +50,12 @@ func omitFieldObject() {
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
 		attr.Seq("ID", 1, "id"),
-		attr.Str("Name", randutil.NameRander(3), "name"),
-		attr.Int("Gender", randutil.IntRander(1, 2), "gender"),
+		attr.Str("Name", genutil.NameRander(3), "name"),
+		attr.Int("Gender", genutil.IntRander(1, 2), "gender"),
 		attr.Str("Phone", randomdata.PhoneNumber, "phone"),
 		attr.Str("Address", randomdata.Address, "address"),
-		attr.Time("CreatedAt", randutil.NowRander(), "created_at"),
-		attr.Time("UpdatedAt", randutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
+		attr.Time("CreatedAt", genutil.NowRander(), "created_at"),
+		attr.Time("UpdatedAt", genutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
 	).Table("users")
 
 	for i := 0; i < 5; i++ {
@@ -70,11 +70,11 @@ func omitFieldObject() {
 // 	userFactory := factory.New(
 // 		func() interface{} { return &User{CreatedAt: time.Now()} },
 // 		attr.Seq("ID", 1, "id"),
-// 		attr.Str("Name", randutil.NameRander(3), "name"),
-// 		attr.Int("Gender", randutil.IntRander(1, 2), "gender"),
+// 		attr.Str("Name", genutil.NameRander(3), "name"),
+// 		attr.Int("Gender", genutil.IntRander(1, 2), "gender"),
 // 		attr.Str("Phone", randomdata.PhoneNumber, "phone"),
 // 		attr.Str("Address", randomdata.Address, "address"),
-// 		attr.Time("UpdatedAt", randutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
+// 		attr.Time("UpdatedAt", genutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
 // 	).Table("users").Fix("CreatedAt", "created_at")
 // }
 
@@ -82,11 +82,11 @@ func omitFieldObject() {
 // 	userFactory := factory.New(
 // 		func() interface{} { return &User{CreatedAt: time.Now()} },
 // 		attr.Seq("ID", 1, "id"),
-// 		attr.Str("Name", randutil.NameRander(3), "name"),
-// 		attr.Int("Gender", randutil.IntRander(1, 2), "gender"),
+// 		attr.Str("Name", genutil.NameRander(3), "name"),
+// 		attr.Int("Gender", genutil.IntRander(1, 2), "gender"),
 // 		attr.Str("Phone", randomdata.PhoneNumber, "phone"),
 // 		attr.Str("Address", randomdata.Address, "address"),
-// 		attr.Time("UpdatedAt", randutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
+// 		attr.Time("UpdatedAt", genutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
 // 	).Table("users").Fix("CreatedAt", "created_at")
 // }
 

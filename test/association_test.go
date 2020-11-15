@@ -5,9 +5,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	factory "github.com/vicxu416/gogo-factory"
-	"github.com/vicxu416/gogo-factory/attr"
-	"github.com/vicxu416/gogo-factory/randutil"
+	factory "github.com/vx416/gogo-factory"
+	"github.com/vx416/gogo-factory/attr"
+	"github.com/vx416/gogo-factory/genutil"
 )
 
 func testBelongsTo(t *testing.T, home *Home) {
@@ -53,12 +53,12 @@ func testManyAndMany(t *testing.T, user *User, belongsTo bool) {
 func TestBelongsTo(t *testing.T) {
 	homeFactory := factory.New(
 		&Home{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	locFactory := factory.New(
 		&Location{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	homeData, err := homeFactory.BelongsTo("Location", locFactory.ToAssociation()).Build()
@@ -70,13 +70,13 @@ func TestBelongsTo(t *testing.T) {
 func TestHasOne(t *testing.T) {
 	userFactory := factory.New(
 		&User{},
-		attr.Seq("ID", 1),
-		attr.Int("Gender", randutil.IntRander(1, 2)),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
+		attr.Int("Gender", genutil.RandInt(1, 2)),
 	)
 
 	homeFactory := factory.New(
 		&Home{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	userData, err := userFactory.HasOne("Home",
@@ -91,13 +91,13 @@ func TestHasOne(t *testing.T) {
 func TestHasMany(t *testing.T) {
 	userFactory := factory.New(
 		&User{},
-		attr.Seq("ID", 1),
-		attr.Int("Gender", randutil.IntRander(1, 2)),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
+		attr.Int("Gender", genutil.RandInt(1, 2)),
 	)
 
 	homeFactory := factory.New(
 		&Home{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	homeAss := homeFactory.ToAssociation().ReferField("ID").ForeignField("HostID")
@@ -110,13 +110,13 @@ func TestHasMany(t *testing.T) {
 func TestHasOneAndMany(t *testing.T) {
 	userFactory := factory.New(
 		&User{},
-		attr.Seq("ID", 1),
-		attr.Int("Gender", randutil.IntRander(1, 2)),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
+		attr.Int("Gender", genutil.RandInt(1, 2)),
 	)
 
 	homeFactory := factory.New(
 		&Home{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	homeAss := homeFactory.ToAssociation().ReferField("ID").ForeignField("HostID")
@@ -130,18 +130,18 @@ func TestHasOneAndMany(t *testing.T) {
 func TestManyAndMany(t *testing.T) {
 	userFactory := factory.New(
 		&User{},
-		attr.Seq("ID", 1),
-		attr.Int("Gender", randutil.IntRander(1, 2)),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
+		attr.Int("Gender", genutil.RandInt(1, 2)),
 	)
 
 	homeFactory := factory.New(
 		&Home{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	country := factory.New(
 		&Country{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	homeAss := homeFactory.ToAssociation().ReferField("ID").ForeignField("CountryID")
@@ -153,23 +153,23 @@ func TestManyAndMany(t *testing.T) {
 func TestAllAssociations(t *testing.T) {
 	userFactory := factory.New(
 		&User{},
-		attr.Seq("ID", 1),
-		attr.Int("Gender", randutil.IntRander(1, 2)),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
+		attr.Int("Gender", genutil.RandInt(1, 2)),
 	)
 
 	homeFactory := factory.New(
 		&Home{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	locFactory := factory.New(
 		&Location{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	country := factory.New(
 		&Country{},
-		attr.Seq("ID", 1),
+		attr.Int("ID", genutil.SeqInt(1, 1)),
 	)
 
 	homeAss := homeFactory.BelongsTo("Location", locFactory.ToAssociation()).ToAssociation().ReferField("ID").ForeignField("HostID")

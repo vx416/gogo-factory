@@ -47,3 +47,51 @@ type Location struct {
 	ID      int64
 	Address string
 }
+
+type Employee struct {
+	ID                int64        `db:"id" gorm:"column:id"`
+	Name              string       `db:"name" gorm:"column:name"`
+	Gender            Gender       `db:"gender" gorm:"column:gender"`
+	Age               *int32       `db:"age" gorm:"column:age"`
+	Phone             string       `db:"phone" gorm:"column:phone"`
+	Salary            float64      `db:"salary" gorm:"column:salary"`
+	Specialty         *Specialty   `gorm:"-"`
+	SecondSpecialties []*Specialty `gorm:"-"`
+	Projects          []*Project   `gorm:"-"`
+	CreatedAt         time.Time    `db:"created_at" gorm:"column:created_at"`
+	UpdatedAt         sql.NullTime `db:"updated_at" gorm:"column:updated_at"`
+}
+
+type Project struct {
+	ID        int64       `db:"id" gorm:"column:id"`
+	Name      string      `db:"name" gorm:"column:name"`
+	Employees []*Employee `gorm:"-"`
+	Tasks     []*Task     `gorm:"-"`
+	Deadline  time.Time   `db:"deadline" gorm:"column:deadline"`
+}
+
+type EmployeesProjects struct {
+	ID         int64 `db:"id" gorm:"column:id"`
+	ProjectID  int64 `db:"project_id" gorm:"column:project_id"`
+	EmployeeID int64 `db:"employee_id" gorm:"column:employee_id"`
+}
+
+type Task struct {
+	ID        int64     `db:"id" gorm:"column:id"`
+	Name      string    `db:"name" gorm:"column:name"`
+	ProjectID int64     `db:"project_id" gorm:"column:project_id"`
+	Deadline  time.Time `db:"deadline" gorm:"column:deadline"`
+}
+
+type Specialty struct {
+	ID       int64         `db:"id" gorm:"column:id"`
+	Name     string        `db:"name" gorm:"column:name"`
+	OwnerID  sql.NullInt64 `db:"owner_id" gorm:"column:owner_id"`
+	Domain   *Domain
+	DomainID sql.NullInt64 `db:"domain_id" gorm:"column:domain_id"`
+}
+
+type Domain struct {
+	ID   int64  `db:"id" gorm:"column:id"`
+	Name string `db:"name" gorm:"column:name"`
+}

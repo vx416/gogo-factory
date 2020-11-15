@@ -1,4 +1,4 @@
-package randutil
+package genutil
 
 import (
 	"math/rand"
@@ -7,7 +7,7 @@ import (
 
 var letter = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func RandFloats(min, max float64, n int) []float64 {
+func randFloats(min, max float64, n int) []float64 {
 	rand.Seed(time.Now().UnixNano())
 	res := make([]float64, n)
 	for i := range res {
@@ -16,7 +16,7 @@ func RandFloats(min, max float64, n int) []float64 {
 	return res
 }
 
-func RandInts(min, max int, n int) []int {
+func randInts(min, max int, n int) []int {
 	rand.Seed(time.Now().UnixNano())
 	res := make([]int, n)
 	for i := range res {
@@ -25,7 +25,7 @@ func RandInts(min, max int, n int) []int {
 	return res
 }
 
-func RandUints(min, max uint, n int) []uint {
+func randUints(min, max uint, n int) []uint {
 	rand.Seed(time.Now().UnixNano())
 	res := make([]uint, n)
 	for i := range res {
@@ -34,7 +34,7 @@ func RandUints(min, max uint, n int) []uint {
 	return res
 }
 
-func RandString(n int) string {
+func randString(n int) string {
 	b := make([]rune, n)
 	for i := range b {
 		b[i] = letter[rand.Intn(len(letter))]
@@ -42,7 +42,7 @@ func RandString(n int) string {
 	return string(b)
 }
 
-func RandBool(ratio float64) bool {
+func randBool(ratio float64) bool {
 	rand.Seed(time.Now().UnixNano())
 	if ratio > rand.Float64() {
 		return true

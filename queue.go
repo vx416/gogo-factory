@@ -1,6 +1,10 @@
 package factory
 
-import "github.com/vicxu416/gogo-factory/dbutil"
+import (
+	"fmt"
+
+	"github.com/vx416/gogo-factory/dbutil"
+)
 
 type Node struct {
 	next *Node
@@ -39,13 +43,15 @@ func (queue *Queue) Enqueue(node *Node) {
 		queue.head = node
 		queue.tail = node
 		queue.len++
+		for queue.tail.next != nil {
+			queue.tail = queue.tail.next
+			queue.len++
+		}
 		return
 	}
 
 	queue.tail.next = node
 	node.prev = queue.tail
-	queue.tail = node
-	queue.len++
 	for queue.tail.next != nil {
 		queue.tail = queue.tail.next
 		queue.len++
@@ -72,6 +78,15 @@ func (queue *Queue) Scan() func() *Node {
 		curr = curr.next
 		return node
 	}
+}
+
+func (queue *Queue) String() string {
+	res := ""
+	scan := queue.Scan()
+	for node := scan(); node != nil; node = scan() {
+		res += fmt.Sprintf("data:%+v\n", node.data)
+	}
+	return res
 }
 
 func NewInsertJobQueue() *InsertJobsQueue {

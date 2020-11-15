@@ -24,15 +24,17 @@ type InsertJob struct {
 	tag          string
 }
 
-func (job *InsertJob) SetDB(db *sql.DB, driver, table, tag string) {
+func (job *InsertJob) SetDB(db *sql.DB, driver, table, tag string) *InsertJob {
 	job.db = db
 	job.driver = driver
 	job.table = table
 	job.tag = tag
+	return job
 }
 
-func (job *InsertJob) SetInsertFunc(fn InsertFunc) {
+func (job *InsertJob) SetInsertFunc(fn InsertFunc) *InsertJob {
 	job.insertFunc = fn
+	return job
 }
 
 func (job *InsertJob) Insert() error {

@@ -20,8 +20,8 @@ package test
 // 	userFactory := factory.New(
 // 		func() interface{} { return &User{CreatedAt: time.Now()} },
 // 		attr.Seq("ID", 1, "id"),
-// 		attr.Str("Username", randutil.NameRander(3), "username"),
-// 		attr.Int("Age", randutil.IntRander(25, 50), "age"),
+// 		attr.Str("Username", genutil.NameRander(3), "username"),
+// 		attr.Int("Age", genutil.IntRander(25, 50), "age"),
 // 	).FAssociate("Home", homeFactory, 1, false, func(data, depend interface{}) error {
 // 		user := data.(*User)
 // 		home := depend.(*Home)

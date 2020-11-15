@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"strings"
 
-	"github.com/vicxu416/gogo-factory/dbutil"
+	"github.com/vx416/gogo-factory/dbutil"
 )
 
 var options = &Options{}
@@ -12,7 +12,6 @@ var options = &Options{}
 type Options struct {
 	DB         *sql.DB
 	Driver     string
-	TagName    string
 	InsertFunc dbutil.InsertFunc
 }
 

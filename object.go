@@ -4,10 +4,18 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/vicxu416/gogo-factory/attr"
+	"github.com/vx416/gogo-factory/attr"
 )
 
-type ObjectSetter []attr.Attributer
+type ObjectSetter map[string]attr.Attributer
+
+func (setter ObjectSetter) clone() ObjectSetter {
+	newAttr := make(map[string]attr.Attributer)
+	for k, v := range setter {
+		newAttr[k] = v
+	}
+	return newAttr
+}
 
 func (setter ObjectSetter) SetupObject(val reflect.Value, omits map[string]bool) error {
 	data := val.Interface()
@@ -52,14 +60,18 @@ func newConstructor(object interface{}) objectConstructor {
 }
 
 func getColumnValues(val reflect.Value, fieldColumn map[string]string) map[string]interface{} {
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
 	columnValues := make(map[string]interface{})
-	for field, colName := range fieldColumn {
+	for field, column := range fieldColumn {
 		field := val.FieldByName(field)
 		if field.Kind() == reflect.Ptr {
 			field = field.Elem()
 		}
 		val := field.Interface()
-		columnValues[colName] = val
+		columnValues[column] = val
 	}
 
 	return columnValues

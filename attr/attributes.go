@@ -2,7 +2,6 @@ package attr
 
 import (
 	"database/sql"
-	"fmt"
 	"reflect"
 )
 
@@ -20,9 +19,6 @@ const (
 	StringAttr
 	// BytesAttr []byte attribute
 	BytesAttr
-	// FactoryAttr factory attribute
-	BeforeFactoryAttr
-	AfterFactoryAttr
 	// TimeAttr time.Time attribute
 	TimeAttr
 	// BoolAttr boolean attribute
@@ -52,11 +48,9 @@ func SetField(data interface{}, field reflect.Value, fieldType reflect.StructFie
 		return nil, err
 	}
 
-	if scanner, ok := isScanner(field); ok {
-		if err := scanner.Scan(val); err != nil {
-			return nil, fmt.Errorf("set scanner field, scan occurs error, %+v", err)
-		}
-		return val, nil
+	ok, err := TryScan(field, val)
+	if ok {
+		return val, err
 	}
 
 	if field.Kind() == reflect.Ptr {
@@ -94,7 +88,16 @@ func SetField(data interface{}, field reflect.Value, fieldType reflect.StructFie
 	return val, nil
 }
 
-func isScanner(field reflect.Value) (sql.Scanner, bool) {
+func TryScan(field reflect.Value, data interface{}) (bool, error) {
+	var err error
+	scanner, ok := IsScanner(field)
+	if ok {
+		err = scanner.Scan(data)
+	}
+	return ok, err
+}
+
+func IsScanner(field reflect.Value) (sql.Scanner, bool) {
 	var fieldRaw interface{}
 	if field.CanAddr() {
 		fieldRaw = field.Addr().Interface()
