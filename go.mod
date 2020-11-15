@@ -9,7 +9,6 @@ require (
 	github.com/jmoiron/sqlx v1.2.0
 	github.com/mattn/go-sqlite3 v1.14.4
 	github.com/stretchr/testify v1.5.1
-	github.com/vicxu416/gogo-factory v0.0.3 // indirect
 	golang.org/x/text v0.3.4 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gorm.io/driver/sqlite v1.1.3
