@@ -36,14 +36,14 @@ const (
 )
 
 type Employee struct {
-	ID          int64   
-	Name        string  
-	Gender      Gender  
-	Age         *int32  
-	Phone       string  
-	Salary      float64 
-	CreatedAt   time.Time
-	UpdatedAt   sql.NullTime 
+  ID          int64
+  Name        string  
+  Gender      Gender  
+  Age         *int32  
+  Phone       string  
+  Salary      float64
+  CreatedAt   time.Time
+  UpdatedAt   sql.NullTime
 }
 ```
 
@@ -172,6 +172,8 @@ employee := EmployeeFactory.MustBuild().(*Employee)
 gogo-factory can allow user to build one or many objects in one time, moreover, you can use `Insert` method to build a object meanwhile insert this object into database.
 
 ```go
+factory.Opt().SetDB(db, "sqlite3") // setup global sql.DB instance and database type
+
 var EmployeeFactory = factory.New(
   &Employee{},
   attr.Int("ID", genutil.SeqInt(1, 1)),
