@@ -108,7 +108,7 @@ func (suite *insertSuite) TestInsertOne() {
 
 	employees2 := EmployeeFactory.MustInsertN(5).([]*Employee)
 	suite.Len(employees2, 5)
-	_, employeeMap, err := AllEmployees(suite.db, suite.dbType)
+	employees, employeeMap, err := AllEmployees(suite.db, suite.dbType)
 	suite.Assert().NoError(err)
 	suite.Len(employees, 6)
 	for i := 0; i < len(employees2); i++ {

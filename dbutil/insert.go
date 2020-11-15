@@ -28,7 +28,6 @@ func DefaultInsertFunc(job *InsertJob) error {
 	valuesStr = strings.TrimRight(valuesStr, ", ")
 	insertStmt := "INSERT INTO " + job.table + " (" + colsStr + ")" + " VALUES (" + valuesStr + ")"
 	insertStmt = rebind(bindType(job.driver), insertStmt)
-	fmt.Println(insertStmt, values)
 	_, err := job.db.Exec(insertStmt, values...)
 	if err != nil {
 		return fmt.Errorf("sql insert failed, stmt:%s, values:%+v, err:%+v", insertStmt, values, err)
