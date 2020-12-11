@@ -7,6 +7,7 @@ import (
 	"github.com/vx416/gogo-factory/attr"
 )
 
+// ObjectSetter object setter
 type ObjectSetter []attr.Attributer
 
 func (setter ObjectSetter) clone() ObjectSetter {
@@ -17,25 +18,50 @@ func (setter ObjectSetter) clone() ObjectSetter {
 	return newAttr
 }
 
-func (setter ObjectSetter) SetupObject(val reflect.Value, omits map[string]bool) error {
+// SetupObject setup object with Attributers
+func (setter ObjectSetter) SetupObject(val reflect.Value, omits map[string]bool, only map[string]bool) error {
 	data := val.Interface()
 	if val.Kind() != reflect.Ptr {
 		return fmt.Errorf("setup object: object should be a pointer")
 	}
 	val = val.Elem()
 
+	if len(only) > 0 {
+		for _, attrItem := range setter {
+			if !only[attrItem.Name()] {
+				continue
+			}
+			if omits[attrItem.Name()] {
+				continue
+			}
+			err := setter.setField(data, val, attrItem)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	for _, attrItem := range setter {
 		if omits[attrItem.Name()] {
 			continue
 		}
-		field, fieldType, found := findField(val, attrItem.Name())
-		if !found {
-			return fmt.Errorf("setup object: object field(%s) not found", attrItem.Name())
-		}
-		_, err := attr.SetField(data, field, fieldType, attrItem)
+		err := setter.setField(data, val, attrItem)
 		if err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (setter ObjectSetter) setField(data interface{}, val reflect.Value, attrItem attr.Attributer) error {
+	field, fieldType, found := findField(val, attrItem.Name())
+	if !found {
+		return fmt.Errorf("setup object: object field(%s) not found", attrItem.Name())
+	}
+	_, err := attr.SetField(data, field, fieldType, attrItem)
+	if err != nil {
+		return err
 	}
 	return nil
 }

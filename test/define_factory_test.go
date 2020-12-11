@@ -106,6 +106,25 @@ func TestOmit(t *testing.T) {
 
 }
 
+func TestOnly(t *testing.T) {
+	minTime, maxTime := time.Now().Add(-30*24*time.Hour), time.Now()
+	employeeFactory := factory.New(
+		&Employee{},
+		attr.Int("ID", genutil.SeqInt(1, 1)),
+		attr.Int("Gender", genutil.RandIntSet(1, 2)),
+		attr.Time("UpdatedAt", genutil.RandTime(minTime, maxTime)),
+	)
+
+	onlyed := employeeFactory.Only("ID")
+	e1 := employeeFactory.MustBuild().(*Employee)
+	e2 := onlyed.MustBuild().(*Employee)
+	assert.Equal(t, e1.ID, int64(1))
+	assert.Equal(t, e2.ID, int64(2))
+	assert.NotZero(t, e1.Gender)
+	assert.Zero(t, e2.Gender)
+	assert.False(t, e2.UpdatedAt.Valid)
+}
+
 func TestOverWrite(t *testing.T) {
 	minTime, maxTime := time.Now().Add(-30*24*time.Hour), time.Now()
 	employeeFactory := factory.New(

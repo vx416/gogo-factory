@@ -20,6 +20,7 @@ func New(obj interface{}, attrs ...attr.Attributer) *Factory {
 		setter:          attrs,
 		fieldColumns:    fieldColumns,
 		omits:           make(map[string]bool),
+		only:            make(map[string]bool),
 		insertJobsQueue: NewInsertJobQueue(),
 		associations:    NewAssociations(),
 	}
@@ -32,6 +33,7 @@ type Factory struct {
 	setter          ObjectSetter
 	fieldColumns    map[string]string
 	omits           map[string]bool
+	only            map[string]bool
 	insertJobsQueue *InsertJobsQueue
 	associations    *Associations
 }
@@ -134,6 +136,15 @@ func (f *Factory) ClearOmit() *Factory {
 	return cloned
 }
 
+func (f *Factory) Only(fields ...string) *Factory {
+	cloned := f.Clone()
+	for _, field := range fields {
+		cloned.only[field] = true
+	}
+	return cloned
+}
+
+// Attrs replace object Attributer and return the new factory
 func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
 	cloned := f.Clone()
 	oldAttrsMap := make(map[string]int)
@@ -149,7 +160,6 @@ func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
 		} else {
 			cloned.setter = append(cloned.setter, attrs[i])
 		}
-
 	}
 	return cloned
 }
@@ -184,6 +194,7 @@ func (f *Factory) ToAssociation() *Association {
 	}
 }
 
+// Clone clone a factory object
 func (f *Factory) Clone() *Factory {
 	clonedOmits := make(map[string]bool)
 	for k, v := range f.omits {
@@ -193,6 +204,10 @@ func (f *Factory) Clone() *Factory {
 	for k, v := range f.fieldColumns {
 		clonedFieldColumns[k] = v
 	}
+	clonedOnly := make(map[string]bool)
+	for k, v := range f.only {
+		clonedOnly[k] = v
+	}
 
 	return &Factory{
 		table:           f.table,
@@ -200,6 +215,7 @@ func (f *Factory) Clone() *Factory {
 		setter:          f.setter.clone(),
 		fieldColumns:    clonedFieldColumns,
 		omits:           clonedOmits,
+		only:            clonedOnly,
 		insertJobsQueue: NewInsertJobQueue(),
 		associations:    f.associations.clone(),
 	}
@@ -236,7 +252,7 @@ func (f *Factory) build(insert bool, foreignFV ...*foreignFieldValue) (interface
 		insertJob = &dbutil.InsertJob{}
 	)
 
-	err = f.setter.SetupObject(val, f.omits)
+	err = f.setter.SetupObject(val, f.omits, f.only)
 	if err != nil {
 		return nil, nil, err
 	}
