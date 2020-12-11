@@ -15,14 +15,9 @@ func New(obj interface{}, attrs ...attr.Attributer) *Factory {
 		fieldColumns[a.Name()] = a.ColName()
 	}
 
-	attrsMap := make(map[string]attr.Attributer)
-	for i := range attrs {
-		attrsMap[attrs[i].Name()] = attrs[i]
-	}
-
 	return &Factory{
 		initObj:         newConstructor(obj),
-		setter:          attrsMap,
+		setter:          attrs,
 		fieldColumns:    fieldColumns,
 		omits:           make(map[string]bool),
 		insertJobsQueue: NewInsertJobQueue(),
@@ -141,9 +136,20 @@ func (f *Factory) ClearOmit() *Factory {
 
 func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
 	cloned := f.Clone()
+	oldAttrsMap := make(map[string]int)
+	for i := range cloned.setter {
+		oldAttrsMap[cloned.setter[i].Name()] = i
+	}
+
 	for i := range attrs {
 		cloned.fieldColumns[attrs[i].Name()] = attrs[i].ColName()
-		cloned.setter[attrs[i].Name()] = attrs[i]
+		oldIndex := oldAttrsMap[attrs[i].Name()]
+		if oldIndex != 0 {
+			cloned.setter[oldIndex] = attrs[i]
+		} else {
+			cloned.setter = append(cloned.setter, attrs[i])
+		}
+
 	}
 	return cloned
 }

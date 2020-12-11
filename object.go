@@ -7,12 +7,12 @@ import (
 	"github.com/vx416/gogo-factory/attr"
 )
 
-type ObjectSetter map[string]attr.Attributer
+type ObjectSetter []attr.Attributer
 
 func (setter ObjectSetter) clone() ObjectSetter {
-	newAttr := make(map[string]attr.Attributer)
-	for k, v := range setter {
-		newAttr[k] = v
+	newAttr := make([]attr.Attributer, len(setter))
+	for i, v := range setter {
+		newAttr[i] = v
 	}
 	return newAttr
 }
