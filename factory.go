@@ -1,4 +1,4 @@
-package factory
+package gofactory
 
 import (
 	"fmt"
@@ -8,16 +8,14 @@ import (
 	"github.com/vx416/gogo-factory/dbutil"
 )
 
+// New construct a factory object
 func New(obj interface{}, attrs ...attr.Attributer) *Factory {
-	fieldColumns := make(map[string]string)
-
-	for _, a := range attrs {
-		fieldColumns[a.Name()] = a.ColName()
-	}
+	objectSetter := ObjectSetter(attrs)
+	fieldColumns := objectSetter.buildFieldColumns(obj)
 
 	return &Factory{
 		initObj:         newConstructor(obj),
-		setter:          attrs,
+		setter:          objectSetter,
 		fieldColumns:    fieldColumns,
 		omits:           make(map[string]bool),
 		only:            make(map[string]bool),
@@ -258,6 +256,10 @@ func (f *Factory) build(insert bool, foreignFV ...*foreignFieldValue) (interface
 	}
 
 	fieldColumns := f.fieldColumns
+	if Opt().TagProcess != nil {
+		fieldColumns = getObjectColumnNames(val, Opt().TagProcess)
+	}
+
 	for i := range foreignFV {
 		fv := foreignFV[i]
 		if fv == nil {

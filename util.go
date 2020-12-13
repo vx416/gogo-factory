@@ -1,8 +1,10 @@
-package factory
+package gofactory
 
 import (
 	"database/sql/driver"
 	"reflect"
+	"regexp"
+	"strings"
 )
 
 func getColName(options []string) string {
@@ -69,6 +71,7 @@ func isPtr(val reflect.Value) bool {
 	return val.Kind() == reflect.Ptr
 }
 
+// IsValuer check the filed implement driver.Valuer or not
 func IsValuer(field reflect.Value) (driver.Valuer, bool) {
 	var fieldRaw interface{}
 	fieldRaw = field.Interface()
@@ -82,4 +85,29 @@ func IsValuer(field reflect.Value) (driver.Valuer, bool) {
 		return scanner, ok
 	}
 	return nil, false
+}
+
+// DBTagProcess db tag process
+func DBTagProcess(tagGetter TagGetter) string {
+	return tagGetter.Get("db")
+}
+
+// GormTagProcess gorm tag process
+func GormTagProcess(tagGetter TagGetter) string {
+	regex := regexp.MustCompile(`column:(.*?( |$))`)
+	gormTag := tagGetter.Get("gorm")
+
+	subMatch := regex.FindAllStringSubmatch(gormTag, -1)
+
+	if len(subMatch) == 0 {
+		return ""
+	}
+
+	firstMatch := subMatch[0]
+
+	if len(firstMatch) < 1 {
+		return ""
+	}
+
+	return strings.TrimSpace(firstMatch[1])
 }

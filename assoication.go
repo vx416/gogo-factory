@@ -1,4 +1,4 @@
-package factory
+package gofactory
 
 import (
 	"fmt"

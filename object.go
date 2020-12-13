@@ -1,4 +1,4 @@
-package factory
+package gofactory
 
 import (
 	"fmt"
@@ -16,6 +16,16 @@ func (setter ObjectSetter) clone() ObjectSetter {
 		newAttr[i] = v
 	}
 	return newAttr
+}
+
+func (setter ObjectSetter) buildFieldColumns(obj interface{}) map[string]string {
+	fieldColumns := make(map[string]string)
+
+	for _, a := range setter {
+		fieldColumns[a.Name()] = a.ColName()
+	}
+
+	return fieldColumns
 }
 
 // SetupObject setup object with Attributers
@@ -101,4 +111,32 @@ func getColumnValues(val reflect.Value, fieldColumn map[string]string) map[strin
 	}
 
 	return columnValues
+}
+
+// TagGetter tag getter
+type TagGetter interface {
+	Get(tagName string) (tagString string)
+}
+
+type TagProcess func(tagGetter TagGetter) string
+
+func getObjectColumnNames(val reflect.Value, tagProcess TagProcess) map[string]string {
+	objType := val.Type()
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+		objType = val.Type()
+	}
+
+	filedColumns := make(map[string]string)
+
+	for i := 0; i < objType.NumField(); i++ {
+		field := objType.Field(i)
+		fieldName := field.Name
+		colName := tagProcess(field.Tag)
+		if colName != "" {
+			filedColumns[fieldName] = colName
+		}
+	}
+
+	return filedColumns
 }

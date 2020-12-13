@@ -1,4 +1,4 @@
-package factory
+package gofactory
 
 // func TestDependQueue(t *testing.T) {
 // 	q := dependQueue{q: &Queue{}}
