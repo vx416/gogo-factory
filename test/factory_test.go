@@ -42,7 +42,7 @@ var EmployeeFactory = &EmployeeExt{
 		attr.Int("Age", genutil.RandInt(18, 60), "age"),
 		attr.Float("Salary", genutil.RandFloat(6.5, 12.8), "salary"),
 		attr.Str("Phone", genutil.RandAlph(10), "phone"),
-		attr.Time("CreatedAt", genutil.Now(), "created_at"),
+		attr.Time("CreatedAt", genutil.Now(nil), "created_at"),
 	).Table("employees"),
 }
 
