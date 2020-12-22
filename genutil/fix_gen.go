@@ -2,9 +2,13 @@ package genutil
 
 import "time"
 
-func Now() func() time.Time {
+func Now(loc *time.Location) func() time.Time {
 	return func() time.Time {
-		return time.Now()
+		if loc == nil {
+			return time.Now()
+		}
+
+		return time.Now().In(loc)
 	}
 }
 
