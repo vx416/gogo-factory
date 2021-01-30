@@ -94,7 +94,7 @@ func DBTagProcess(tagGetter TagGetter) string {
 
 // GormTagProcess gorm tag process
 func GormTagProcess(tagGetter TagGetter) string {
-	regex := regexp.MustCompile(`column:(.*?( |$))`)
+	regex := regexp.MustCompile(`column:(.*?(;|$))`)
 	gormTag := tagGetter.Get("gorm")
 
 	subMatch := regex.FindAllStringSubmatch(gormTag, -1)
