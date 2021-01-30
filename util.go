@@ -109,5 +109,6 @@ func GormTagProcess(tagGetter TagGetter) string {
 		return ""
 	}
 
-	return strings.TrimSpace(firstMatch[1])
+	trimed := strings.TrimSpace(firstMatch[1])
+	return strings.Trim(trimed, ";")
 }
