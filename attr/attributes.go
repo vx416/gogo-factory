@@ -1,8 +1,9 @@
 package attr
 
 import (
-	"database/sql"
 	"reflect"
+
+	"github.com/vx416/gogo-factory/reflectutil"
 )
 
 // Type represent attributes type
@@ -48,7 +49,7 @@ func SetField(data interface{}, field reflect.Value, fieldType reflect.StructFie
 		return nil, err
 	}
 
-	ok, err := TryScan(field, val)
+	ok, err := reflectutil.TryScan(field, val)
 	if ok {
 		return val, err
 	}
@@ -86,26 +87,4 @@ func SetField(data interface{}, field reflect.Value, fieldType reflect.StructFie
 	}
 
 	return val, nil
-}
-
-func TryScan(field reflect.Value, data interface{}) (bool, error) {
-	var err error
-	scanner, ok := IsScanner(field)
-	if ok {
-		err = scanner.Scan(data)
-	}
-	return ok, err
-}
-
-func IsScanner(field reflect.Value) (sql.Scanner, bool) {
-	var fieldRaw interface{}
-	if field.CanAddr() {
-		fieldRaw = field.Addr().Interface()
-	} else {
-		fieldRaw = field.Interface()
-	}
-	if scanner, ok := fieldRaw.(sql.Scanner); ok {
-		return scanner, ok
-	}
-	return nil, false
 }

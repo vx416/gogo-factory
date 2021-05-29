@@ -22,7 +22,7 @@ func main() {
 	if err != nil {
 		log.Panicf("err:%+v", err)
 	}
-	factory.DB(db, "sqlite3")
+	factory.Opt().SetDB(db, "sqlite3")
 	initSqliteDB()
 	// insertObject()
 	omitFieldObject()
@@ -31,13 +31,13 @@ func main() {
 func insertObject() {
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
-		attr.Seq("ID", 1, "id"),
-		attr.Str("Name", genutil.NameRander(3), "name"),
-		attr.Int("Gender", genutil.IntRander(1, 2), "gender"),
+		attr.Int("ID", genutil.SeqInt(1, 1), "id"),
+		attr.Str("Name", genutil.RandName(3), "name"),
+		attr.Int("Gender", genutil.RandInt(1, 2), "gender"),
 		attr.Str("Phone", randomdata.PhoneNumber, "phone"),
 		attr.Str("Address", randomdata.Address, "address"),
-		attr.Time("CreatedAt", genutil.NowRander(), "created_at"),
-		attr.Time("UpdatedAt", genutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
+		attr.Time("CreatedAt", genutil.Now(time.UTC), "created_at"),
+		attr.Time("UpdatedAt", genutil.RandTime(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
 	).Table("users")
 
 	for i := 0; i < 5; i++ {
@@ -49,13 +49,13 @@ func insertObject() {
 func omitFieldObject() {
 	userFactory := factory.New(
 		func() interface{} { return &User{} },
-		attr.Seq("ID", 1, "id"),
-		attr.Str("Name", genutil.NameRander(3), "name"),
-		attr.Int("Gender", genutil.IntRander(1, 2), "gender"),
+		attr.Int("ID", genutil.SeqInt(1, 1), "id"),
+		attr.Str("Name", genutil.RandName(3), "name"),
+		attr.Int("Gender", genutil.RandInt(1, 2), "gender"),
 		attr.Str("Phone", randomdata.PhoneNumber, "phone"),
 		attr.Str("Address", randomdata.Address, "address"),
-		attr.Time("CreatedAt", genutil.NowRander(), "created_at"),
-		attr.Time("UpdatedAt", genutil.TimeRander(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
+		attr.Time("CreatedAt", genutil.Now(time.UTC), "created_at"),
+		attr.Time("UpdatedAt", genutil.RandTime(time.Now(), time.Now().Add(30*time.Hour)), "updated_at"),
 	).Table("users")
 
 	for i := 0; i < 5; i++ {

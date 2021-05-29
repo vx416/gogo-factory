@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/vx416/gogo-factory/attr"
+	"github.com/vx416/gogo-factory/reflectutil"
 )
 
 // ObjectSetter object setter
@@ -65,7 +66,7 @@ func (setter ObjectSetter) SetupObject(val reflect.Value, omits map[string]bool,
 }
 
 func (setter ObjectSetter) setField(data interface{}, val reflect.Value, attrItem attr.Attributer) error {
-	field, fieldType, found := findField(val, attrItem.Name())
+	field, fieldType, found := reflectutil.FindField(val, attrItem.Name())
 	if !found {
 		return fmt.Errorf("setup object: object field(%s) not found", attrItem.Name())
 	}
@@ -89,7 +90,9 @@ func newConstructor(object interface{}) objectConstructor {
 		obj := reflect.New(objType)
 		elem := obj.Elem()
 		for i := 0; i < elem.NumField(); i++ {
-			elem.Field(i).Set(val.Field(i))
+			if !val.Field(i).IsZero() {
+				elem.Field(i).Set(val.Field(i))
+			}
 		}
 		return obj
 	}
@@ -106,8 +109,10 @@ func getColumnValues(val reflect.Value, fieldColumn map[string]string) map[strin
 		if field.Kind() == reflect.Ptr {
 			field = field.Elem()
 		}
-		val := field.Interface()
-		columnValues[column] = val
+		if !field.IsZero() {
+			val := field.Interface()
+			columnValues[column] = val
+		}
 	}
 
 	return columnValues

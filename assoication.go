@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/vx416/gogo-factory/dbutil"
+	"github.com/vx416/gogo-factory/reflectutil"
 
 	"github.com/vx416/gogo-factory/attr"
 )
@@ -13,7 +14,8 @@ type AssociationType int8
 
 const (
 	BelongsTo AssociationType = iota + 1
-	HasOneOrMany
+	HasMany
+	HasOne
 	ManyToMany
 )
 
@@ -32,6 +34,7 @@ type Association struct {
 	referCol        string
 	joinTable       *joinTable
 	num             int32
+	assType         AssociationType
 }
 
 func (as *Association) clone() *Association {
@@ -45,6 +48,7 @@ func (as *Association) clone() *Association {
 		joinTable:       as.joinTable,
 		associatedField: as.associatedField,
 		num:             as.num,
+		assType:         as.assType,
 	}
 }
 
@@ -101,7 +105,7 @@ func (as *Association) Num(num int32) *Association {
 
 func (as *Association) buildForeignFieldValue(val reflect.Value) (*foreignFieldValue, error) {
 	if as.referField != "" {
-		fieldVal := getFieldValue(val.Interface(), as.referField)
+		fieldVal := reflectutil.GetFieldValue(val.Interface(), as.referField)
 		if fieldVal == nil {
 			return nil, fmt.Errorf("association: has many association referField(%s) not found", as.referField)
 		}
@@ -114,15 +118,7 @@ func (as *Association) buildForeignFieldValue(val reflect.Value) (*foreignFieldV
 	return nil, nil
 }
 
-func (as *Association) buildObject(insert bool, asFactory, parentFactory *Factory, foreignFV ...*foreignFieldValue) (interface{}, error) {
-	data, _, err := asFactory.build(insert, foreignFV...)
-	if err != nil {
-		return nil, err
-	}
-	return data, nil
-}
-
-func (as *Association) build(val reflect.Value, insert bool, parent *Factory, asType AssociationType) ([]interface{}, error) {
+func (as *Association) build(val reflect.Value, insert bool, parent *Factory) ([]interface{}, error) {
 	objects := make([]interface{}, as.num)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
@@ -134,7 +130,7 @@ func (as *Association) build(val reflect.Value, insert bool, parent *Factory, as
 			err    error
 			fv     *foreignFieldValue
 		)
-		if asType == HasOneOrMany {
+		if as.assType == HasMany || as.assType == HasOne {
 			fv, err = as.buildForeignFieldValue(val)
 			if err != nil {
 				return nil, err
@@ -146,14 +142,14 @@ func (as *Association) build(val reflect.Value, insert bool, parent *Factory, as
 			return nil, err
 		}
 
-		if asType == BelongsTo {
+		if as.assType == BelongsTo {
 			err := as.setForeignField(object, val)
 			if err != nil {
 				return nil, err
 			}
 		}
 
-		if asType == ManyToMany {
+		if as.assType == ManyToMany {
 			err := as.setAssociatedField(object, val)
 			if err != nil {
 				return nil, err
@@ -167,13 +163,13 @@ func (as *Association) build(val reflect.Value, insert bool, parent *Factory, as
 		as.factory.insertJobsQueue.clear()
 	}
 
-	if len(objects) == 1 {
+	if as.assType == HasOne || as.assType == BelongsTo {
 		if err := as.setField(val, objects[0]); err != nil {
 			return objects, err
 		}
 	}
 
-	if len(objects) > 1 {
+	if as.assType == HasMany || as.assType == ManyToMany {
 		for i := range objects {
 			if err := as.setSlice(val, objects[i]); err != nil {
 				return objects, err
@@ -194,30 +190,27 @@ func (as *Association) setForeignField(associatedObj interface{}, parentValue re
 		parentValue = parentValue.Elem()
 	}
 	parentField := parentValue.FieldByName(as.foreignField)
-	if !parentField.IsValid() {
-		return fmt.Errorf(errMsg+"parent field(%s) is invalid", as.FieldName, as.foreignField)
-	}
-	if !parentField.CanSet() {
+	if !reflectutil.CanSet(parentField) {
 		return fmt.Errorf(errMsg+"parent field(%s) is unsettable", as.FieldName, as.foreignField)
 	}
 
-	referField := getFieldElem(getElem(associatedObj), as.referField)
+	referField := reflectutil.GetFieldElem(reflectutil.GetElem(associatedObj), as.referField)
 	if !referField.IsValid() {
 		return fmt.Errorf(errMsg+"referenced field(%s) is invalid", as.FieldName, as.referField)
 	}
 
-	ok, err := attr.TryScan(parentField, referField.Interface())
+	ok, err := reflectutil.TryScan(parentField, referField.Interface())
 	if ok {
 		return err
 	}
 
-	if isPtr(parentField) && !isPtr(referField) {
+	if reflectutil.IsPtr(parentField) && !reflectutil.IsPtr(referField) {
 		referField = referField.Addr()
 	}
-	if !isPtr(parentField) && isPtr(referField) {
+	if !reflectutil.IsPtr(parentField) && reflectutil.IsPtr(referField) {
 		referField = referField.Elem()
 	}
-	if valuer, ok := IsValuer(referField); ok {
+	if valuer, ok := reflectutil.IsValuer(referField); ok {
 		value, err := valuer.Value()
 		if err != nil {
 			return err
@@ -239,7 +232,7 @@ func (as *Association) setAssociatedField(associatedObj interface{}, parentValue
 	}
 
 	associatedValue := reflect.ValueOf(associatedObj)
-	associatedField := getFieldElem(associatedValue, as.associatedField)
+	associatedField := reflectutil.GetFieldElem(associatedValue, as.associatedField)
 	if !associatedField.CanSet() {
 		return fmt.Errorf(errMsg+"associated field(%s) cannot set", as.fieldName, as.associatedField)
 	}
@@ -267,7 +260,7 @@ func (as *Association) setAssociatedField(associatedObj interface{}, parentValue
 }
 
 func (as *Association) setSlice(val reflect.Value, dependData interface{}) error {
-	field := getFieldElem(val, as.fieldName)
+	field := reflectutil.GetFieldElem(val, as.fieldName)
 	dependVal := reflect.ValueOf(dependData)
 	if field.Kind() != reflect.Slice {
 		return fmt.Errorf("association: field(%s) type should be slice", as.fieldName)
@@ -291,13 +284,13 @@ func (as *Association) setSlice(val reflect.Value, dependData interface{}) error
 }
 
 func (as *Association) setField(val reflect.Value, dependData interface{}) error {
-	field := getFieldElem(val, as.fieldName)
-	dependVal := getElem(dependData)
+	field := reflectutil.GetFieldElem(val, as.fieldName)
+	dependVal := reflectutil.GetElem(dependData)
 	if !field.CanSet() {
 		return fmt.Errorf("association: field(%s) is unsettable", as.fieldName)
 	}
 
-	ok, err := attr.TryScan(field, val)
+	ok, err := reflectutil.TryScan(field, val)
 	if ok {
 		return err
 	}
@@ -317,13 +310,13 @@ func (fv foreignFieldValue) SetupObject(val reflect.Value) error {
 		return fmt.Errorf("association: object should be a pointer")
 	}
 	val = val.Elem()
-	field := getFieldElem(val, fv.fieldName)
-	ok, err := attr.TryScan(field, fv.val)
+	field := reflectutil.GetFieldElem(val, fv.fieldName)
+	ok, err := reflectutil.TryScan(field, fv.val)
 	if ok {
 		return err
 	}
 
-	fieldVal := getElem(fv.val)
+	fieldVal := reflectutil.GetElem(fv.val)
 	if !field.CanSet() {
 		return fmt.Errorf("association: field(%s) is unsettable", fv.fieldName)
 	}
@@ -377,18 +370,12 @@ func (ass *Associations) addManyToMany(as *Association) {
 	ass.manyToMany = append(ass.manyToMany, as)
 }
 
-func (ass *Associations) clear() {
-	ass.belongsTo = ass.belongsTo[:0]
-	ass.hasOneOrMany = ass.hasOneOrMany[:0]
-	ass.manyToMany = ass.manyToMany[:0]
-}
-
 func (ass Associations) buildBelongsTo(val reflect.Value, insert bool, parent *Factory) (map[string]interface{}, error) {
 	columnValues := make(map[string]interface{})
 
 	for i := range ass.belongsTo {
 		as := ass.belongsTo[i]
-		objects, err := as.build(val, insert, parent, BelongsTo)
+		objects, err := as.build(val, insert, parent)
 		if err != nil {
 			return columnValues, err
 		}
@@ -400,7 +387,7 @@ func (ass Associations) buildBelongsTo(val reflect.Value, insert bool, parent *F
 			return columnValues, fmt.Errorf("association: insert belongTo object(%s) referenced field or columnName is empty", as.fieldName)
 		}
 		if insert {
-			value := getFieldValue(object, as.referField)
+			value := reflectutil.GetFieldValue(object, as.referField)
 			if value == nil {
 				return columnValues, fmt.Errorf("association: belongTo object(%s) referField(%s) is incorrect", as.fieldName, as.referField)
 			}
@@ -413,7 +400,7 @@ func (ass Associations) buildBelongsTo(val reflect.Value, insert bool, parent *F
 func (ass Associations) buildHasOneOrMany(val reflect.Value, insert bool, parent *Factory) error {
 	for i := range ass.hasOneOrMany {
 		as := ass.hasOneOrMany[i]
-		_, err := as.build(val, insert, parent, HasOneOrMany)
+		_, err := as.build(val, insert, parent)
 		if err != nil {
 			return err
 		}
@@ -424,7 +411,7 @@ func (ass Associations) buildHasOneOrMany(val reflect.Value, insert bool, parent
 func (ass Associations) buildManyToMany(val reflect.Value, insert bool, parent *Factory) error {
 	for i := range ass.manyToMany {
 		as := ass.manyToMany[i]
-		objects, err := as.build(val, insert, parent, ManyToMany)
+		objects, err := as.build(val, insert, parent)
 		if err != nil {
 			return err
 		}
@@ -447,12 +434,12 @@ func (ass Associations) buildJoinInsertJob(as *Association, parentObj, associate
 		return nil, err
 	}
 	colValues := make(map[string]interface{})
-	referVal := getFieldValue(parentObj, as.referField)
+	referVal := reflectutil.GetFieldValue(parentObj, as.referField)
 	if referVal == nil {
 		return nil, fmt.Errorf("association(m-to-m): field(%s), refer field(%s) not found", as.fieldName, as.referField)
 	}
 	colValues[as.referCol] = referVal
-	foreginVal := getFieldValue(associatedObj, as.foreignField)
+	foreginVal := reflectutil.GetFieldValue(associatedObj, as.foreignField)
 	if foreginVal == nil {
 		return nil, fmt.Errorf("association(m-to-m): field(%s), foreign field(%s) not found", as.fieldName, as.foreignField)
 	}

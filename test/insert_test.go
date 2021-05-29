@@ -56,10 +56,8 @@ func employeeAndSpec(suite *insertSuite, a *Employee, b *Employee, specs []*Spec
 		specsMap[specs[i].ID] = specs[i]
 	}
 	domainMap := make(map[int64]*Domain)
-	if domains != nil {
-		for i := range domains {
-			domainMap[domains[i].ID] = domains[i]
-		}
+	for i := range domains {
+		domainMap[domains[i].ID] = domains[i]
 	}
 
 	specEq(suite, a.Specialty, specsMap[a.Specialty.ID])

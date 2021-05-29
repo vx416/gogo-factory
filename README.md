@@ -17,7 +17,7 @@ go get -u github.com/vx416/gogo-factory
 - [Building Objects](#building-objects)
   - [Build one or many objects](#build-one-or-many-objects)
   - [Setup building context](#setup-building-context)
-- [Factory Association](#factory-association)
+- [Factory Associations](#factory-associations)
   - [BelongsTo association](#belongsto-association)
   - [HasOne or HasMany association](#hasone-or-hasmany-association)
   - [ManyToMany association](#manytomany-association)
@@ -108,10 +108,10 @@ Customizing each `genFunc` is annoying, therefore, gogo-factory provide built-in
 ```go
 var EmployeeFactory = factory.New(
   &Employee{},
-  attr.Int("ID", genutil.IntRander(1, 100)), // generate random int value between 1 to 100
-  attr.Str("Name", genutil.NameRander(3)), // generate name with gender flag (1:male, 2:female, 3:random)
+  attr.Int("ID", genutil.RandInt(1, 100)), // generate random int value between 1 to 100
+  attr.Str("Name", genutil.RandName(3)), // generate name with gender flag (1:male, 2:female, 3:random)
   attr.Float("Salary", genutil.RandFloatSet(6.8, 5.2, 100.5, 10.5)), // generate random float value from given float set
-  attr.Time("CreatedAt", genutil.TimeRander(time.Now().Add(-10*24*time.Hour), time.Now())), // generate random time value between now()-10days to now()
+  attr.Time("CreatedAt", genutil.RandTime(time.Now().Add(-10*24*time.Hour), time.Now())), // generate random time value between now()-10days to now()
 )
 
 employee := EmployeeFactory.MustBuild().(*Employee)

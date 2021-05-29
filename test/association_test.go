@@ -12,13 +12,13 @@ import (
 
 func testBelongsTo(t *testing.T, home *Home) {
 	assert.NotZero(t, home.ID)
-	assert.NotNil(t, home.Location)
+	assert.NotNil(t, home.Location, "home's location not nil")
 	assert.NotZero(t, home.Location.ID)
 }
 
 func testHasOne(t *testing.T, user *User) {
 	assert.NotZero(t, user.ID)
-	assert.NotNil(t, user.Home)
+	assert.NotNil(t, user.Home, "user's home is nil")
 	assert.NotZero(t, user.Home.ID)
 	assert.NotZero(t, user.Home.HostID)
 	assert.Equal(t, user.ID, user.Home.HostID)
@@ -26,7 +26,7 @@ func testHasOne(t *testing.T, user *User) {
 
 func testHasMany(t *testing.T, user *User, num int) {
 	assert.NotZero(t, user.ID)
-	assert.NotEmpty(t, user.Rented)
+	assert.NotEmpty(t, user.Rented, "user's rented is empty")
 	assert.Len(t, user.Rented, num)
 	for _, home := range user.Rented {
 		assert.NotZero(t, home.ID)
@@ -37,10 +37,10 @@ func testHasMany(t *testing.T, user *User, num int) {
 
 func testManyAndMany(t *testing.T, user *User, belongsTo bool) {
 	assert.NotZero(t, user.ID)
-	assert.NotEmpty(t, user.Countries)
+	assert.NotEmpty(t, user.Countries, "user's country is empty")
 	for _, country := range user.Countries {
 		assert.NotZero(t, country.ID)
-		assert.NotEmpty(t, country.Homes)
+		assert.NotEmpty(t, country.Homes, "country's home is empty")
 		for _, home := range country.Homes {
 			assert.NotZero(t, home.ID)
 			if belongsTo {
@@ -63,6 +63,7 @@ func TestBelongsTo(t *testing.T) {
 
 	homeData, err := homeFactory.BelongsTo("Location", locFactory.ToAssociation()).Build()
 	assert.NoError(t, err)
+	assert.NotNil(t, homeData, "home not nil")
 	home := homeData.(*Home)
 	testBelongsTo(t, home)
 }
@@ -105,6 +106,10 @@ func TestHasMany(t *testing.T) {
 	assert.NoError(t, err)
 	user := userData.(*User)
 	testHasMany(t, user, 5)
+	userData, err = userFactory.HasMany("Rented", homeAss, 1).Build()
+	assert.NoError(t, err)
+	user = userData.(*User)
+	testHasMany(t, user, 1)
 }
 
 func TestHasOneAndMany(t *testing.T) {

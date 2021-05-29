@@ -6,6 +6,7 @@ import (
 
 	"github.com/vx416/gogo-factory/attr"
 	"github.com/vx416/gogo-factory/dbutil"
+	"github.com/vx416/gogo-factory/reflectutil"
 )
 
 // New construct a factory object
@@ -164,24 +165,28 @@ func (f *Factory) Attrs(attrs ...attr.Attributer) *Factory {
 
 func (f *Factory) BelongsTo(fieldName string, ass *Association) *Factory {
 	cloned := f.Clone()
+	ass.assType = BelongsTo
 	cloned.associations.addBelongsTo(ass.FieldName(fieldName).Num(1))
 	return cloned
 }
 
 func (f *Factory) HasOne(fieldName string, ass *Association) *Factory {
 	cloned := f.Clone()
+	ass.assType = HasOne
 	cloned.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(1))
 	return cloned
 }
 
 func (f *Factory) HasMany(fieldName string, ass *Association, num int32) *Factory {
 	cloned := f.Clone()
+	ass.assType = HasMany
 	cloned.associations.addHasOneOrMany(ass.FieldName(fieldName).Num(num))
 	return cloned
 }
 
 func (f *Factory) ManyToMany(fieldName string, ass *Association, num int32) *Factory {
 	cloned := f.Clone()
+	ass.assType = ManyToMany
 	cloned.associations.addManyToMany(ass.FieldName(fieldName).Num(num))
 	return cloned
 }
@@ -238,7 +243,7 @@ func (f *Factory) buildN(n int, insert bool) (interface{}, error) {
 		values = append(values, reflect.ValueOf(object))
 	}
 
-	sliceVal := makeSlice(values[0].Interface(), n)
+	sliceVal := reflectutil.MakeSlice(values[0].Interface(), n)
 	sliceVal = reflect.Append(sliceVal, values...)
 	return sliceVal.Interface(), nil
 }
