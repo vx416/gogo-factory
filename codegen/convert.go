@@ -96,7 +96,7 @@ func GetTypeName(in string) string {
 func GetGetFunc(in string) string {
 	switch in {
 	case "string", "Decimal", "String", "NullString":
-		return `genutil.RandName(3)`
+		return `genutil.RandAlph(10)`
 	case "int", "int8", "int32", "int64", "Int", "NullInt64", "NullInt32":
 		return `genutil.SeqInt(1, 1)`
 	case "uint", "uint8", "uint32", "uint64", "Uint":

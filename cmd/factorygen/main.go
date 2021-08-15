@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	input   = flag.String("i", ".", "Input file or directory. (required)")
+	input   = flag.String("i", "", "Input file or directory. (required)")
 	structs = flag.String("s", "", "The needed struct name, these names should  be concat by comma. (required)")
 	output  = flag.String("o", "", "Output directory for generated factory code. (optional)")
 	p       = flag.Bool("p", false, "Print the result. (optional)")
@@ -64,25 +64,27 @@ func parseFile(filePath string) {
 	modelsName := strings.Split(*structs, ",")
 	fileMeta := codegen.ParseFileMeta(node, modelsName...)
 
-	t, err := codegen.GetTempalte(false, fileMeta)
-	if err != nil {
-		fmt.Printf("get factory content failed, err:%+v", err)
-		os.Exit(1)
-	}
-	if *p {
-		fmt.Println(filePath)
-		fmt.Println(t)
-	}
-	if *output != "" {
-		path := filepath.Base(filePath)
-		fiileName := strings.Split(path, ".")[0]
-		filepath.Join(*output, fiileName)
-		outputFile, err := os.Create(filepath.Join(*output, fiileName+"_factory.go"))
+	if len(fileMeta.Structs) > 0 {
+		t, err := codegen.GetTempalte(false, fileMeta)
 		if err != nil {
-			fmt.Printf("create output(%s) file failed, err:%+v", *output, err)
+			fmt.Printf("get factory content failed, err:%+v", err)
 			os.Exit(1)
 		}
-		outputFile.WriteString(t)
+		if *p {
+			fmt.Println(filePath)
+			fmt.Println(t)
+		}
+		if *output != "" {
+			path := filepath.Base(filePath)
+			fiileName := strings.Split(path, ".")[0]
+			filepath.Join(*output, fiileName)
+			outputFile, err := os.Create(filepath.Join(*output, fiileName+"_factory.go"))
+			if err != nil {
+				fmt.Printf("create output(%s) file failed, err:%+v", *output, err)
+				os.Exit(1)
+			}
+			outputFile.WriteString(t)
+		}
 	}
 }
 
