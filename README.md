@@ -4,9 +4,21 @@ gogo-factory is a fixtures replacement with a clear definition syntax, which ins
 
 ## Install
 
+### Install go-factory library
 ```shell
 go get -u github.com/vx416/gogo-factory
 ```
+### Install factory generator
+```shell
+go get -u github.com/vx416/gogo-factory/cmd/factorygen
+```
+
+#### usage 
+```
+factorygen -i=input_directory -s=User,Product -o=output_directory -p
+```
+
+
 
 ## Getting Started
 

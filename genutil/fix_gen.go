@@ -41,3 +41,15 @@ func FixTime(val time.Time) func() time.Time {
 		return val
 	}
 }
+
+func FixBytes(val []byte) func() []byte {
+	return func() []byte {
+		return val
+	}
+}
+
+func FixInterface(val interface{}) func() interface{} {
+	return func() interface{} {
+		return val
+	}
+}
