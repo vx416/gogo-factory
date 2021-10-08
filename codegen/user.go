@@ -3,6 +3,8 @@ package codegen
 import (
 	"database/sql"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 type Gender int8
@@ -22,4 +24,6 @@ type User struct {
 	Address   sql.NullString
 	CreatedAt time.Time
 	UpdatedAt sql.NullTime
+	Price     decimal.Decimal
+	Amount    decimal.NullDecimal
 }
