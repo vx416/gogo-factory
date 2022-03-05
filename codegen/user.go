@@ -26,4 +26,9 @@ type User struct {
 	UpdatedAt sql.NullTime
 	Price     decimal.Decimal
 	Amount    decimal.NullDecimal
+	Timestamp
+}
+
+type Timestamp struct {
+	CreatedAti uint64
 }

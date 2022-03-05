@@ -43,6 +43,7 @@ func ParseFileMeta(node *ast.File, structNames ...string) FileMeta {
 	fileMeta := FileMeta{
 		Structs: make([]Struct, 0, len(structNames)),
 	}
+
 	ast.Inspect(node, func(n ast.Node) bool {
 		switch ret := n.(type) {
 		case *ast.TypeSpec:
@@ -77,10 +78,13 @@ func (v *structVisitor) Visit(node ast.Node) ast.Visitor {
 		v.st.Fields = make([]Field, 0, len(st.Fields.List))
 		for _, field := range st.Fields.List {
 			typeName := getTypeString(field.Type)
-			v.st.Fields = append(v.st.Fields, Field{
-				Type: typeName,
-				Name: field.Names[0].Name,
-			})
+
+			if len(field.Names) > 0 {
+				v.st.Fields = append(v.st.Fields, Field{
+					Type: typeName,
+					Name: field.Names[0].Name,
+				})
+			}
 		}
 	}
 	return v
