@@ -40,7 +40,6 @@ func main() {
 			}
 			return nil
 		})
-
 		return
 	}
 	parseFile(*input)

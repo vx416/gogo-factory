@@ -109,10 +109,8 @@ func getColumnValues(val reflect.Value, fieldColumn map[string]string) map[strin
 		if field.Kind() == reflect.Ptr {
 			field = field.Elem()
 		}
-		if !field.IsZero() {
-			val := field.Interface()
-			columnValues[column] = val
-		}
+		val := field.Interface()
+		columnValues[column] = val
 	}
 
 	return columnValues
