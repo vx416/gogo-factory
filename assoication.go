@@ -170,9 +170,11 @@ func (as *Association) build(val reflect.Value, insert bool, parent *Factory) ([
 	}
 
 	if as.assType == HasMany || as.assType == ManyToMany {
-		for i := range objects {
-			if err := as.setSlice(val, objects[i]); err != nil {
-				return objects, err
+		if as.fieldName != "" {
+			for i := range objects {
+				if err := as.setSlice(val, objects[i]); err != nil {
+					return objects, err
+				}
 			}
 		}
 	}
@@ -228,7 +230,7 @@ func (as *Association) setAssociatedField(associatedObj interface{}, parentValue
 	errMsg := "association(m-to-m): field(%s), set parent object to associated field failed, "
 
 	if as.associatedField == "" {
-		return fmt.Errorf(errMsg+"associated field empty", as.fieldName)
+		return nil
 	}
 
 	associatedValue := reflect.ValueOf(associatedObj)
