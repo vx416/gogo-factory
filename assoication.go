@@ -465,11 +465,11 @@ func (ass Associations) validateManyToManyAss(as *Association) error {
 		return fmt.Errorf("association(m-to-m): field(%s), join table is empty", as.fieldName)
 	}
 
-	if as.referField == "" || as.referCol == "" {
+	if as.referCol == "" {
 		return fmt.Errorf("association(m-to-m): field(%s), refer field or refer column name is empty", as.fieldName)
 	}
 
-	if as.foreignField == "" || as.foreignKey == "" {
+	if as.foreignKey == "" {
 		return fmt.Errorf("association(m-to-m): field(%s), foreign field or foreign key is empty", as.fieldName)
 	}
 	return nil
